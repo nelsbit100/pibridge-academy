@@ -60,6 +60,19 @@ interface AcademyState {
   navigateToCourse: (courseId: string) => void;
   navigateToLesson: (courseId: string, lessonId: string) => void;
   goBack: () => void;
+
+  // Mutable learner progress
+  markLessonComplete: (courseId: string, lessonId: string, durationMinutes?: number) => void;
+  recordQuizScore: (courseId: string, lessonId: string, score: number, passed: boolean) => void;
+  recordSubmission: (
+    courseId: string,
+    lessonId: string,
+    kind: "assignment" | "project" | "lab",
+    score: number
+  ) => void;
+  playbackPositions: Record<string, Record<string, number>>;
+  savePlayback: (courseId: string, lessonId: string, seconds: number) => void;
+  clearPlayback: (courseId: string, lessonId: string) => void;
 }
 
 const AcademyContext = createContext<AcademyState | null>(null);
@@ -111,6 +124,119 @@ export function AcademyProvider({ children }: { children: React.ReactNode }) {
     [setView]
   );
 
+  // ── Mutable learner progress ──
+  const [progressState, setProgressState] = useState<Record<string, LearningProgress>>(LEARNING_PROGRESS);
+  // lesson playback positions: courseId -> lessonId -> seconds
+  const [playback, setPlayback] = useState<Record<string, Record<string, number>>>({});
+
+  const markLessonComplete = useCallback((courseId: string, lessonId: string, durationMinutes = 0) => {
+    setProgressState((prev) => {
+      const p = prev[courseId];
+      if (p?.completedLessons.includes(lessonId)) return prev;
+      const base: LearningProgress = p ?? {
+        learnerId: DEMO_LEARNER.id,
+        courseId,
+        completedLessons: [],
+        completedModules: [],
+        quizScores: {},
+        assignmentScores: {},
+        projectScores: {},
+        totalTimeSpent: 0,
+        lastAccessedAt: new Date().toISOString(),
+      };
+      return {
+        ...prev,
+        [courseId]: {
+          ...base,
+          completedLessons: [...base.completedLessons, lessonId],
+          totalTimeSpent: base.totalTimeSpent + durationMinutes,
+          lastAccessedAt: new Date().toISOString(),
+        },
+      };
+    });
+  }, []);
+
+  const recordQuizScore = useCallback((courseId: string, lessonId: string, score: number, passed: boolean) => {
+    setProgressState((prev) => {
+      const base: LearningProgress = prev[courseId] ?? {
+        learnerId: DEMO_LEARNER.id,
+        courseId,
+        completedLessons: [],
+        completedModules: [],
+        quizScores: {},
+        assignmentScores: {},
+        projectScores: {},
+        totalTimeSpent: 0,
+        lastAccessedAt: new Date().toISOString(),
+      };
+      return {
+        ...prev,
+        [courseId]: {
+          ...base,
+          quizScores: { ...base.quizScores, [lessonId]: Math.max(score, base.quizScores[lessonId] ?? 0) },
+          completedLessons: passed && !base.completedLessons.includes(lessonId)
+            ? [...base.completedLessons, lessonId]
+            : base.completedLessons,
+          lastAccessedAt: new Date().toISOString(),
+        },
+      };
+    });
+  }, []);
+
+  const recordSubmission = useCallback(
+    (courseId: string, lessonId: string, kind: "assignment" | "project" | "lab", score: number) => {
+      setProgressState((prev) => {
+        const base: LearningProgress = prev[courseId] ?? {
+          learnerId: DEMO_LEARNER.id,
+          courseId,
+          completedLessons: [],
+          completedModules: [],
+          quizScores: {},
+          assignmentScores: {},
+          projectScores: {},
+          totalTimeSpent: 0,
+          lastAccessedAt: new Date().toISOString(),
+        };
+        const scores =
+          kind === "assignment"
+            ? { assignmentScores: { ...base.assignmentScores, [lessonId]: score } }
+            : kind === "project"
+              ? { projectScores: { ...base.projectScores, [lessonId]: score } }
+              : {};
+        return {
+          ...prev,
+          [courseId]: {
+            ...base,
+            ...scores,
+            completedLessons: base.completedLessons.includes(lessonId)
+              ? base.completedLessons
+              : [...base.completedLessons, lessonId],
+            lastAccessedAt: new Date().toISOString(),
+          },
+        };
+      });
+    },
+    []
+  );
+
+  const savePlayback = useCallback((courseId: string, lessonId: string, seconds: number) => {
+    setPlayback((prev) => {
+      const forCourse = prev[courseId] ?? {};
+      if (Math.abs((forCourse[lessonId] ?? 0) - seconds) < 1) return prev;
+      return { ...prev, [courseId]: { ...forCourse, [lessonId]: seconds } };
+    });
+  }, []);
+
+  const clearPlayback = useCallback((courseId: string, lessonId: string) => {
+    setPlayback((prev) => {
+      const forCourse = prev[courseId];
+      if (!forCourse || !(lessonId in forCourse)) return prev;
+      const next = { ...forCourse };
+      delete next[lessonId];
+      return { ...prev, [courseId]: next };
+    });
+  }, []);
+
   // Data accessors
   const getProgramme = useCallback((id: string) => PROGRAMMES.find((p) => p.id === id), []);
   const getCourse = useCallback((id: string) => COURSES.find((c) => c.id === id), []);
@@ -145,8 +271,14 @@ export function AcademyProvider({ children }: { children: React.ReactNode }) {
     getInstructor,
     learner: DEMO_LEARNER,
     enrollments: ENROLLMENTS,
-    progress: LEARNING_PROGRESS,
+    progress: progressState,
     certificates: CERTIFICATES,
+    markLessonComplete,
+    recordQuizScore,
+    recordSubmission,
+    playbackPositions: playback,
+    savePlayback,
+    clearPlayback,
     getEnrollment,
     getProgress,
     navigateToProgramme,

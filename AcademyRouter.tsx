@@ -159,7 +159,7 @@ function AcademyNav() {
 }
 
 function AcademyViewRouter() {
-  const { currentView, setView } = useAcademy();
+  const { currentView, setView, navigateToProgramme } = useAcademy();
 
   switch (currentView) {
     // Public
@@ -198,7 +198,10 @@ function AcademyViewRouter() {
 
     // Career & Commerce
     case "career-discovery":
-      return <CareerDiscovery onBack={() => setView("home")} onSelectProgramme={(progId) => { /* would set programme context */ setView("programme-detail"); }} />;
+      return <CareerDiscovery
+        onBack={() => setView("home")}
+        onSelectProgramme={(progId) => navigateToProgramme(progId)}
+      />;
     case "career-path":
       return <CareerPathProgression
         domain="cybersecurity"

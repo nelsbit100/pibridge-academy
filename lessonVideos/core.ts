@@ -270,6 +270,28 @@ export function quizRevealAt(scene: QuizSceneData): number {
   return LEAD_IN + lineSeconds(scene.question) + LINE_GAP * 2;
 }
 
+export interface KnowledgeCheck {
+  question: string;
+  options: string[];
+  answerIndex: number;
+  explanation: string;
+}
+
+/** Extract every knowledge-check item from a script (quiz + quizcard scenes). */
+export function collectKnowledgeChecks(script: LessonVideoScript): KnowledgeCheck[] {
+  const out: KnowledgeCheck[] = [];
+  for (const s of script.scenes) {
+    if (s.kind === "quiz") {
+      out.push({ question: s.question, options: s.options, answerIndex: s.answerIndex, explanation: s.explanation });
+    } else if (s.kind === "quizcard") {
+      for (const c of s.cards) {
+        out.push({ question: c.question, options: c.options, answerIndex: c.answerIndex, explanation: c.explanation });
+      }
+    }
+  }
+  return out;
+}
+
 /** When a quiz-card's next question should advance (seconds into the scene). */
 export function quizCardRevealAt(cardIndex: number): number {
   return LEAD_IN + cardIndex * 9 + 4;

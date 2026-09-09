@@ -104,6 +104,7 @@ export function ProfessionalProfile() {
   const { goBack, setView } = useAcademy();
   const [activeTab, setActiveTab] = useState<"overview" | "skills" | "portfolio" | "passport">("overview");
   const [copiedCredentialId, setCopiedCredentialId] = useState<string | null>(null);
+  const [passportNotice, setPassportNotice] = useState<string | null>(null);
   const [filterDomain, setFilterDomain] = useState<string>("all");
 
   const learner = DEMO_LEARNER;
@@ -132,7 +133,16 @@ export function ProfessionalProfile() {
             <h1 className="text-xl font-bold text-slate-900">Professional Profile</h1>
             <p className="text-xs text-slate-400">Your verified skills, portfolio, and credentials</p>
           </div>
-          <button className="px-3 py-1.5 bg-fuchsia-50 text-fuchsia-500 rounded-lg text-xs font-semibold hover:bg-fuchsia-100 transition-colors flex items-center gap-1.5">
+          <button
+            onClick={async () => {
+              const url = `${window.location.origin}${window.location.pathname}#/profile/${learner.id}`;
+              try {
+                if (navigator.share) await navigator.share({ title: `${learner.name}'s PiBridge Profile`, url });
+                else { await navigator.clipboard.writeText(url); setPassportNotice("Profile link copied."); }
+              } catch { /* dismissed */ }
+            }}
+            className="px-3 py-1.5 bg-fuchsia-50 text-fuchsia-500 rounded-lg text-xs font-semibold hover:bg-fuchsia-100 transition-colors flex items-center gap-1.5"
+          >
             <Share2 className="w-3.5 h-3.5" /> Share Profile
           </button>
         </div>
@@ -488,16 +498,35 @@ export function ProfessionalProfile() {
 
             {/* Actions */}
             <div className="flex justify-center gap-3 mt-6">
-              <button className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-neutral-950 font-bold rounded-xl text-sm transition-colors flex items-center gap-2">
+              <button
+                onClick={() => window.print()}
+                className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-neutral-950 font-bold rounded-xl text-sm transition-colors flex items-center gap-2"
+              >
                 <Download className="w-4 h-4" /> Download PDF
               </button>
-              <button className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-900 font-semibold rounded-xl text-sm transition-colors flex items-center gap-2">
+              <button
+                onClick={async () => {
+                  const url = "https://pibridge.com/passport/pibridge-id-2026-0001";
+                  try {
+                    if (navigator.share) await navigator.share({ title: "My PiBridge Professional Passport", url });
+                    else { await navigator.clipboard.writeText(url); setPassportNotice("Passport link copied to clipboard."); }
+                  } catch { /* user dismissed share sheet */ }
+                }}
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-900 font-semibold rounded-xl text-sm transition-colors flex items-center gap-2"
+              >
                 <Share2 className="w-4 h-4" /> Share Passport
               </button>
-              <button className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-900 font-semibold rounded-xl text-sm transition-colors flex items-center gap-2">
+              <button
+                onClick={async () => {
+                  await navigator.clipboard.writeText("https://pibridge.com/passport/pibridge-id-2026-0001");
+                  setPassportNotice("Public URL copied to clipboard.");
+                }}
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-900 font-semibold rounded-xl text-sm transition-colors flex items-center gap-2"
+              >
                 <ExternalLink className="w-4 h-4" /> Public URL
               </button>
             </div>
+            {passportNotice && <p className="text-center text-xs text-emerald-600 mt-3">{passportNotice}</p>}
           </div>
         )}
       </div>

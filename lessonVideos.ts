@@ -21,6 +21,7 @@ import { deepContainers as deepCT } from "./lessonVideos/ct";
 import { deepDevOps as deepDO } from "./lessonVideos/do";
 
 import type { LessonVideoScript } from "./lessonVideos/core";
+import { enrichScript, lessonOrder } from "./lessonVideos/enrich";
 
 // ════════════════════════════════════════════════════════════════
 // Registry
@@ -54,8 +55,26 @@ function withCourse(script: LessonVideoScript): LessonVideoScript {
   return { ...script, courseId: script.courseId ?? (prefix ? COURSE_BY_PREFIX[prefix] : "") };
 }
 
+// Auto-enrichment: every script gets a spaced-repetition review of the
+// previous lesson plus a closing glossary scene, computed from course order.
+const BY_COURSE: Record<string, LessonVideoScript[]> = {};
+for (const s of ALL) {
+  const cid = withCourse(s).courseId ?? "";
+  (BY_COURSE[cid] ??= []).push(s);
+}
+for (const list of Object.values(BY_COURSE)) {
+  list.sort((a, b) => {
+    const oa = lessonOrder(a.lessonId);
+    const ob = lessonOrder(b.lessonId);
+    return oa[0] - ob[0] || oa[1] - ob[1];
+  });
+}
+
 export const LESSON_VIDEOS: Record<string, LessonVideoScript> = Object.fromEntries(
-  ALL.map((s) => [s.lessonId, withCourse(s)])
+  ALL.map((s) => {
+    const withId = withCourse(s);
+    return [s.lessonId, enrichScript(withId, BY_COURSE[withId.courseId ?? ""] ?? [withId])];
+  })
 );
 
 export function getLessonVideo(lessonId: string): LessonVideoScript | undefined {

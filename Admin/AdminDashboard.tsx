@@ -42,8 +42,30 @@ const MOCK_USERS = [
 ];
 
 export function AdminDashboard() {
-  const { setView } = useAcademy();
+  const { setView, navigateToCourse } = useAcademy();
   const [activeTab, setActiveTab] = useState<"overview" | "users" | "courses" | "reports">("overview");
+  const [toast, setToast] = useState<string | null>(null);
+
+  const notify = (msg: string) => {
+    setToast(msg);
+    window.setTimeout(() => setToast(null), 3500);
+  };
+
+  const exportCsv = () => {
+    const rows = [
+      ["Name", "Email", "Role", "Joined", "Courses", "Status"],
+      ...MOCK_USERS.map((u) => [u.name, u.email, u.role, u.joined, String(u.courses), u.status]),
+    ];
+    const csv = rows.map((r) => r.map((c) => `"${c}"`).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "pibridge-users.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+    notify(`Exported ${MOCK_USERS.length} users to CSV.`);
+  };
 
   const stats = [
     { label: "Total Learners", value: MOCK_ADMIN_STATS.totalLearners.toLocaleString(), icon: Users, color: "text-blue-400 bg-blue-500/10", change: "+12%" },
@@ -227,7 +249,10 @@ export function AdminDashboard() {
                     className="pl-9 pr-3 py-1.5 bg-slate-100 border border-slate-300 rounded-lg text-sm text-slate-900 placeholder-neutral-500 focus:outline-none focus:border-amber-500/50 w-48"
                   />
                 </div>
-                <button className="px-3 py-1.5 bg-fuchsia-50 text-fuchsia-500 rounded-lg text-xs font-semibold hover:bg-amber-500/20 transition-colors flex items-center gap-1">
+                <button
+                  onClick={exportCsv}
+                  className="px-3 py-1.5 bg-fuchsia-50 text-fuchsia-500 rounded-lg text-xs font-semibold hover:bg-amber-500/20 transition-colors flex items-center gap-1"
+                >
                   <Download className="w-3.5 h-3.5" /> Export
                 </button>
               </div>
@@ -269,10 +294,18 @@ export function AdminDashboard() {
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex gap-1">
-                          <button className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors">
+                          <button
+                            onClick={() => notify(`Viewing ${user.name} (${user.email})`)}
+                            className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors"
+                            aria-label={`View ${user.name}`}
+                          >
                             <Eye className="w-3.5 h-3.5 text-slate-500" />
                           </button>
-                          <button className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors">
+                          <button
+                            onClick={() => notify(`Edit ${user.name} — user management coming soon`)}
+                            className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors"
+                            aria-label={`Edit ${user.name}`}
+                          >
                             <Edit className="w-3.5 h-3.5 text-slate-500" />
                           </button>
                         </div>
@@ -290,7 +323,10 @@ export function AdminDashboard() {
           <div>
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-semibold text-slate-900">All Courses ({COURSES.length})</h2>
-              <button className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-neutral-950 font-bold rounded-xl text-sm transition-colors flex items-center gap-1.5">
+              <button
+                onClick={() => notify("Course creation wizard coming soon — 12 courses are already live.")}
+                className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-neutral-950 font-bold rounded-xl text-sm transition-colors flex items-center gap-1.5"
+              >
                 <Plus className="w-4 h-4" /> Add Course
               </button>
             </div>
@@ -298,7 +334,11 @@ export function AdminDashboard() {
               {COURSES.map((course) => {
                 const programme = PROGRAMMES.find((p) => p.id === course.programmeId);
                 return (
-                  <div key={course.id} className="bg-white border border-slate-200 rounded-xl overflow-hidden hover:border-slate-300 transition-colors">
+                  <div
+                    key={course.id}
+                    onClick={() => navigateToCourse(course.id)}
+                    className="bg-white border border-slate-200 rounded-xl overflow-hidden hover:border-slate-300 transition-colors cursor-pointer"
+                  >
                     <img src={course.thumbnail} alt={course.title} className="w-full h-32 object-cover" />
                     <div className="p-4">
                       <div className="flex items-center gap-2 mb-2">
@@ -353,6 +393,11 @@ export function AdminDashboard() {
           </div>
         )}
       </div>
+      {toast && (
+        <div className="fixed bottom-6 right-6 z-50 px-4 py-3 bg-neutral-900 text-white text-sm rounded-xl shadow-xl border border-slate-700">
+          {toast}
+        </div>
+      )}
     </div>
   );
 }

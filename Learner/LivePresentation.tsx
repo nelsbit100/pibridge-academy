@@ -63,6 +63,7 @@ export function LivePresentation({
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isMicOn, setIsMicOn] = useState(true);
   const [isCameraOn, setIsCameraOn] = useState(true);
+  const [isSharingScreen, setIsSharingScreen] = useState(false);
   const [qaIndex, setQaIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<number, string>>({});
   const [scores, setScores] = useState<Record<string, number>>({});
@@ -159,7 +160,7 @@ export function LivePresentation({
                 {[
                   { label: "Camera", working: isCameraOn, icon: <Video className="w-5 h-5" /> },
                   { label: "Microphone", working: isMicOn, icon: <Mic className="w-5 h-5" /> },
-                  { label: "Screen Share", working: true, icon: <Monitor className="w-5 h-5" /> },
+                  { label: "Screen Share", working: isSharingScreen, icon: <Monitor className="w-5 h-5" /> },
                 ].map((item) => (
                   <div key={item.label} className={`flex items-center gap-3 p-3 rounded-lg border ${item.working ? "border-green-500/30 bg-green-500/10" : "border-red-500/30 bg-red-500/10"}`}>
                     {item.icon}
@@ -202,7 +203,14 @@ export function LivePresentation({
               className={`p-2 rounded-lg transition ${isCameraOn ? "bg-white/10" : "bg-red-500/20 text-red-400"}`}>
               <Video className="w-4 h-4" />
             </button>
-            <button className="p-2 rounded-lg bg-white/10"><Monitor className="w-4 h-4" /></button>
+            <button
+              onClick={() => setIsSharingScreen((s) => !s)}
+              className={`p-2 rounded-lg transition ${isSharingScreen ? "bg-emerald-500/20 text-emerald-400" : "bg-white/10"}`}
+              aria-label={isSharingScreen ? "Stop screen share" : "Start screen share"}
+              title={isSharingScreen ? "Sharing screen" : "Share screen"}
+            >
+              <Monitor className="w-4 h-4" />
+            </button>
           </div>
         </div>
 

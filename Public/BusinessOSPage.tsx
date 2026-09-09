@@ -2,6 +2,7 @@
 // PiBridge BusinessOS — Platform Overview
 // ──────────────────────────────────────────────────────────────
 
+import { useState } from "react";
 import { BUSINESS_OS } from "../platforms";
 import {
   ArrowLeft, TrendingUp, TrendingDown, Minus, Package, Users,
@@ -30,6 +31,12 @@ const STATUS_COLORS: Record<string, string> = {
 export function BusinessOSPage({ onBack }: { onBack: () => void }) {
   const data = BUSINESS_OS;
   const mock = data.mockData;
+  const [ctaNotice, setCtaNotice] = useState<string | null>(null);
+
+  const requestAccess = (plan?: string) => {
+    setCtaNotice(plan ? `Early access requested — ${plan} plan. Our team will reach out.` : "Early access request received — we'll be in touch soon.");
+    window.setTimeout(() => setCtaNotice(null), 3500);
+  };
 
   return (
     <div className="min-h-screen bg-neutral-950">
@@ -45,7 +52,10 @@ export function BusinessOSPage({ onBack }: { onBack: () => void }) {
             </h1>
             <p className="text-xs text-neutral-500">{data.tagline}</p>
           </div>
-          <button className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-neutral-950 font-bold rounded-xl text-sm transition-colors">
+          <button
+            onClick={() => requestAccess()}
+            className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-neutral-950 font-bold rounded-xl text-sm transition-colors"
+          >
             Get Early Access
           </button>
         </div>
@@ -181,7 +191,10 @@ export function BusinessOSPage({ onBack }: { onBack: () => void }) {
                   <span className="text-3xl font-bold text-white">{plan.price}</span>
                   <span className="text-sm text-neutral-500">{plan.period}</span>
                 </div>
-                <button className={`w-full py-2.5 rounded-xl text-sm font-semibold transition-colors ${plan.recommended ? "bg-emerald-500 hover:bg-emerald-400 text-neutral-950" : "bg-neutral-800 hover:bg-neutral-700 text-white"}`}>
+                <button
+                  onClick={() => requestAccess(plan.name ?? plan.price)}
+                  className={`w-full py-2.5 rounded-xl text-sm font-semibold transition-colors ${plan.recommended ? "bg-emerald-500 hover:bg-emerald-400 text-neutral-950" : "bg-neutral-800 hover:bg-neutral-700 text-white"}`}
+                >
                   Get Started
                 </button>
                 <div className="mt-4 space-y-2">

@@ -681,7 +681,11 @@ function SceneRenderer({ scene, schedule, elapsed }: { scene: VideoScene; schedu
 
 interface AnimatedLessonVideoProps {
   script: LessonVideoScript | undefined;
+  /** Resume playback from this position (seconds) on first play. */
+  resumeAt?: number;
   onEnded?: () => void;
+  /** Throttled position reports (~every 4s) for save/resume. */
+  onProgress?: (seconds: number) => void;
 }
 
 const TICK_MS = 200;
@@ -703,7 +707,7 @@ function compile(script: LessonVideoScript): { scenes: CompiledScene[]; total: n
   return { scenes, total: t };
 }
 
-export function AnimatedLessonVideo({ script, onEnded }: AnimatedLessonVideoProps) {
+export function AnimatedLessonVideo({ script, resumeAt = 0, onEnded, onProgress }: AnimatedLessonVideoProps) {
   const [time, setTime] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [started, setStarted] = useState(false);
@@ -715,6 +719,9 @@ export function AnimatedLessonVideo({ script, onEnded }: AnimatedLessonVideoProp
 
   const onEndedRef = useRef(onEnded);
   onEndedRef.current = onEnded;
+  const onProgressRef = useRef(onProgress);
+  onProgressRef.current = onProgress;
+  const lastProgressRef = useRef(0);
 
   const voiceRef = useRef<SpeechSynthesisVoice | null>(null);
   const spokenKeyRef = useRef<string>("");
@@ -772,14 +779,17 @@ export function AnimatedLessonVideo({ script, onEnded }: AnimatedLessonVideoProp
     [muted]
   );
 
-  // Reset on script change
+  // Reset on script change — resuming from the saved position if provided
   useEffect(() => {
-    setTime(0);
+    stopSpeech();
+    spokenKeyRef.current = "";
     setPlaying(false);
     setStarted(false);
-    spokenKeyRef.current = "";
-    stopSpeech();
-  }, [script, stopSpeech]);
+    const resume = Math.max(0, Math.min(resumeAt, totalDuration - 0.5));
+    setTime(resume);
+    lastProgressRef.current = resume;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [script]);
 
   useEffect(() => stopSpeech, [stopSpeech]);
 
@@ -797,9 +807,19 @@ export function AnimatedLessonVideo({ script, onEnded }: AnimatedLessonVideoProp
     if (started && totalDuration > 0 && time >= totalDuration) {
       setPlaying(false);
       stopSpeech();
+      onProgressRef.current?.(totalDuration);
       onEndedRef.current?.();
     }
   }, [time, totalDuration, started, stopSpeech]);
+
+  // Throttled position saving (~every 4s of playback)
+  useEffect(() => {
+    if (!started) return;
+    if (time - lastProgressRef.current >= 4) {
+      lastProgressRef.current = time;
+      onProgressRef.current?.(time);
+    }
+  }, [time, started]);
 
   // Captions + speech — one utterance per scheduled line
   const currentLine = active?.schedule.lines.find((l) => elapsed >= l.start && elapsed < l.end) ?? null;
@@ -876,7 +896,9 @@ export function AnimatedLessonVideo({ script, onEnded }: AnimatedLessonVideoProp
           </span>
           <span className="text-white font-semibold">{script.lessonTitle}</span>
           <span className="text-xs text-neutral-400 mt-1">
-            Animated lesson · {fmtTime(totalDuration)} · narrated
+            {resumeAt >= 5 && resumeAt < totalDuration - 5
+              ? `Resume at ${fmtTime(resumeAt)} / ${fmtTime(totalDuration)} · narrated`
+              : `Animated lesson · ${fmtTime(totalDuration)} · narrated`}
           </span>
         </button>
       )}

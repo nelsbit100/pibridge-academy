@@ -2,6 +2,7 @@
 // PiBridge Secure — Platform Overview
 // ──────────────────────────────────────────────────────────────
 
+import { useState } from "react";
 import { SECURE_PLATFORM } from "../platforms";
 import {
   ArrowLeft, TrendingUp, Shield, Users, FileText, AlertTriangle,
@@ -36,6 +37,12 @@ const MOCK_THREATS = [
 ];
 
 export function SecurePage({ onBack }: { onBack: () => void }) {
+  const [planNotice, setPlanNotice] = useState<string | null>(null);
+
+  const requestPlan = (planName: string) => {
+    setPlanNotice(`${planName} selected — our security team will contact you to begin onboarding.`);
+    window.setTimeout(() => setPlanNotice(null), 3500);
+  };
   const data = SECURE_PLATFORM;
   const mock = data.mockData;
 
@@ -53,7 +60,10 @@ export function SecurePage({ onBack }: { onBack: () => void }) {
             </h1>
             <p className="text-xs text-neutral-500">{data.tagline}</p>
           </div>
-          <button className="px-4 py-2 bg-red-500 hover:bg-red-400 text-white font-bold rounded-xl text-sm transition-colors">
+          <button
+            onClick={() => requestPlan("PiBridge Secure")}
+            className="px-4 py-2 bg-red-500 hover:bg-red-400 text-white font-bold rounded-xl text-sm transition-colors"
+          >
             Get Protected
           </button>
         </div>
@@ -236,7 +246,10 @@ export function SecurePage({ onBack }: { onBack: () => void }) {
                   <span className="text-3xl font-bold text-white">{plan.price}</span>
                   <span className="text-sm text-neutral-500">{plan.period}</span>
                 </div>
-                <button className={`w-full py-2.5 rounded-xl text-sm font-semibold transition-colors ${plan.recommended ? "bg-red-500 hover:bg-red-400 text-white" : "bg-neutral-800 hover:bg-neutral-700 text-white"}`}>
+                <button
+                  onClick={() => requestPlan(plan.name)}
+                  className={`w-full py-2.5 rounded-xl text-sm font-semibold transition-colors ${plan.recommended ? "bg-red-500 hover:bg-red-400 text-white" : "bg-neutral-800 hover:bg-neutral-700 text-white"}`}
+                >
                   Get Protected
                 </button>
                 <div className="mt-4 space-y-2">
@@ -266,6 +279,11 @@ export function SecurePage({ onBack }: { onBack: () => void }) {
           </div>
         </div>
       </div>
+      {planNotice && (
+        <div className="fixed bottom-6 right-6 z-50 px-4 py-3 bg-red-600 text-white text-sm rounded-xl shadow-xl">
+          {planNotice}
+        </div>
+      )}
     </div>
   );
 }

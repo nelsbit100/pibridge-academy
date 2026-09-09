@@ -37,6 +37,19 @@ export function EmployerPortal({ onBack }: { onBack: () => void }) {
   const [shortlist, setShortlist] = useState<string[]>([]);
   const [selectedJob, setSelectedJob] = useState<string | null>(null);
   const [selectedMatchJob, setSelectedMatchJob] = useState(0);
+  const [showFilters, setShowFilters] = useState(false);
+  const [contacted, setContacted] = useState<Set<string>>(new Set());
+  const [portalNotice, setPortalNotice] = useState<string | null>(null);
+
+  const notify = (msg: string) => {
+    setPortalNotice(msg);
+    window.setTimeout(() => setPortalNotice(null), 3200);
+  };
+
+  const contactCandidate = (id: string, name: string) => {
+    setContacted((prev) => new Set([...prev, id]));
+    notify(`Intro message sent to ${name}.`);
+  };
 
   const allSkills = Array.from(new Set(MOCK_CANDIDATES.flatMap((c) => c.skills)));
 
@@ -167,7 +180,10 @@ export function EmployerPortal({ onBack }: { onBack: () => void }) {
           <button onClick={() => setView("landing")} className="flex items-center gap-2 text-gray-400 hover:text-white transition">
             <ArrowLeft className="w-4 h-4" /> Employer Portal
           </button>
-          <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium text-sm flex items-center gap-2">
+          <button
+            onClick={() => notify("Job posting form coming soon — your 6 live roles are collecting applicants.")}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium text-sm flex items-center gap-2"
+          >
             <Plus className="w-4 h-4" /> Post New Job
           </button>
         </div>
@@ -178,7 +194,16 @@ export function EmployerPortal({ onBack }: { onBack: () => void }) {
 
           <div className="space-y-4">
             {MOCK_JOBS.map((job) => (
-              <div key={job.id} className="bg-white/5 border border-white/10 rounded-xl p-6 hover:bg-white/10 transition">
+              <div key={job.id} className={`bg-white/5 border rounded-xl p-6 transition ${
+                selectedSkills.length === 0 || job.skills.some((s) => selectedSkills.includes(s))
+                  ? "border-white/10 hover:bg-white/10"
+                  : "border-white/5 opacity-40"
+              }`}>
+                {showFilters && selectedSkills.length > 0 && (
+                  <div className="mb-3 text-xs text-blue-300">
+                    Matching filters: {job.skills.filter((s) => selectedSkills.includes(s)).join(", ") || "none"}
+                  </div>
+                )}
                 <div className="flex items-start justify-between mb-3">
                   <div>
                     <div className="flex items-center gap-2">
@@ -201,7 +226,10 @@ export function EmployerPortal({ onBack }: { onBack: () => void }) {
                   {job.skills.map((skill) => (
                     <span key={skill} className="bg-white/10 text-gray-300 text-xs px-2 py-1 rounded">{skill}</span>
                   ))}
-                  <button className="ml-auto text-blue-400 hover:text-blue-300 text-sm font-medium flex items-center gap-1">
+                  <button
+                    onClick={() => notify(`${job.applicants} applicants for ${job.title} — applicant tracking coming soon.`)}
+                    className="ml-auto text-blue-400 hover:text-blue-300 text-sm font-medium flex items-center gap-1"
+                  >
                     View Applicants <ChevronRight className="w-4 h-4" />
                   </button>
                 </div>
@@ -421,8 +449,12 @@ export function EmployerPortal({ onBack }: { onBack: () => void }) {
                       <div className="text-2xl font-bold text-blue-400 mb-1">{c.competency}%</div>
                       <div className="text-xs text-gray-500">Competency Score</div>
                       <div className="flex gap-2 mt-3">
-                        <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium">
-                          Contact
+                        <button
+                          onClick={() => contactCandidate(c.id, c.name)}
+                          disabled={contacted.has(c.id)}
+                          className={`px-4 py-2 rounded-lg text-sm font-medium ${contacted.has(c.id) ? "bg-emerald-600/30 text-emerald-400 cursor-default" : "bg-blue-600 hover:bg-blue-700 text-white"}`}
+                        >
+                          {contacted.has(c.id) ? "✓ Contacted" : "Contact"}
                         </button>
                         <button onClick={() => toggleShortlist(c.id)}
                           className="border border-white/20 hover:bg-white/10 text-white px-4 py-2 rounded-lg text-sm font-medium">
@@ -469,7 +501,10 @@ export function EmployerPortal({ onBack }: { onBack: () => void }) {
               placeholder="Search by name, skill, or title..."
               className="w-full bg-white/5 border border-white/10 rounded-lg pl-10 pr-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500" />
           </div>
-          <button className="flex items-center gap-2 bg-white/5 border border-white/10 px-4 py-3 rounded-lg text-sm font-medium hover:bg-white/10 transition">
+          <button
+            onClick={() => setShowFilters((f) => !f)}
+            className={`flex items-center gap-2 border px-4 py-3 rounded-lg text-sm font-medium transition ${showFilters ? "bg-blue-600/20 border-blue-500 text-white" : "bg-white/5 border-white/10 hover:bg-white/10"}`}
+          >
             <Filter className="w-4 h-4" /> Filters
           </button>
         </div>
@@ -528,7 +563,10 @@ export function EmployerPortal({ onBack }: { onBack: () => void }) {
                       {shortlist.includes(c.id) ? <CheckCircle className="w-4 h-4" /> : <Bookmark className="w-4 h-4" />}
                       {shortlist.includes(c.id) ? "Shortlisted" : "Shortlist"}
                     </button>
-                    <button className="border border-white/20 hover:bg-white/10 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-1">
+                    <button
+                      onClick={() => notify(`Opening ${c.name}'s full portfolio — candidate profiles coming soon.`)}
+                      className="border border-white/20 hover:bg-white/10 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-1"
+                    >
                       <Eye className="w-4 h-4" /> View
                     </button>
                   </div>
@@ -553,6 +591,11 @@ export function EmployerPortal({ onBack }: { onBack: () => void }) {
           ))}
         </div>
       </div>
+      {portalNotice && (
+        <div className="fixed bottom-6 right-6 z-50 px-4 py-3 bg-blue-600 text-white text-sm rounded-xl shadow-xl">
+          {portalNotice}
+        </div>
+      )}
     </div>
   );
 }

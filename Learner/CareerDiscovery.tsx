@@ -99,15 +99,15 @@ const QUESTIONS: Question[] = [
 ];
 
 // ── Programme Metadata ──
-const PROGRAMME_META: Record<string, { title: string; icon: string; tier: string; domain: string }> = {
-  cybersecurity: { title: "Cybersecurity", icon: "🛡️", tier: "Foundation", domain: "cybersecurity" },
-  software: { title: "Software Engineering", icon: "💻", tier: "Foundation", domain: "software_engineering" },
-  cloud: { title: "Cloud & Infrastructure", icon: "☁️", tier: "Foundation", domain: "cloud" },
-  ai: { title: "AI & Machine Learning", icon: "🤖", tier: "Foundation", domain: "ai_ml" },
-  data: { title: "Data Engineering & Analytics", icon: "📊", tier: "Foundation", domain: "data" },
-  devsecops: { title: "DevSecOps", icon: "🔒", tier: "Foundation", domain: "devsecops" },
-  mobile: { title: "Mobile App Development", icon: "📱", tier: "Foundation", domain: "mobile" },
-  blockchain: { title: "Blockchain & Web3", icon: "⛓️", tier: "Foundation", domain: "blockchain" },
+const PROGRAMME_META: Record<string, { title: string; icon: string; tier: string; domain: string; progId: string }> = {
+  cybersecurity: { title: "Cybersecurity", icon: "🛡️", tier: "Foundation", domain: "cybersecurity", progId: "prog-cyber" },
+  software: { title: "Software Engineering", icon: "💻", tier: "Foundation", domain: "software_engineering", progId: "prog-software" },
+  cloud: { title: "Cloud & Infrastructure", icon: "☁️", tier: "Foundation", domain: "cloud", progId: "prog-cloud" },
+  ai: { title: "AI & Machine Learning", icon: "🤖", tier: "Foundation", domain: "ai_ml", progId: "prog-ai-ml" },
+  data: { title: "Data Engineering & Analytics", icon: "📊", tier: "Foundation", domain: "data", progId: "prog-data" },
+  devsecops: { title: "DevSecOps", icon: "🔒", tier: "Foundation", domain: "devsecops", progId: "prog-devsecops" },
+  mobile: { title: "Mobile App Development", icon: "📱", tier: "Foundation", domain: "mobile", progId: "prog-mobile" },
+  blockchain: { title: "Blockchain & Web3", icon: "⛓️", tier: "Foundation", domain: "blockchain", progId: "prog-blockchain" },
 };
 
 const REASONS: Record<string, string> = {
@@ -207,7 +207,14 @@ export function CareerDiscovery({ onBack, onSelectProgramme }: { onBack: () => v
             </div>
             <p className="text-gray-300 text-lg mb-6">{recommendations[0]?.reason}</p>
             <div className="flex gap-3">
-              <button className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg font-semibold transition">
+              <button
+                onClick={() => {
+                  const rec0 = recommendations[0];
+                  const progId = rec0 ? rec0.progId ?? rec0.programmeId : undefined;
+                  if (progId && onSelectProgramme) onSelectProgramme(progId);
+                }}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg font-semibold transition"
+              >
                 Start This Programme
               </button>
               <button onClick={() => { setShowResults(false); setStep(0); setAnswers({}); }}
@@ -234,7 +241,7 @@ export function CareerDiscovery({ onBack, onSelectProgramme }: { onBack: () => v
                 <div className="text-right">
                   <div className="text-2xl font-bold text-indigo-400">{rec.match}%</div>
                   <div className="text-xs text-gray-500 mb-2">match</div>
-                  <button onClick={() => onSelectProgramme && onSelectProgramme(`prog-${rec.programmeId}`)}
+                  <button onClick={() => onSelectProgramme && onSelectProgramme(rec.progId)}
                     className="text-xs bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg transition">
                     Start Path →
                   </button>

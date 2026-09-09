@@ -28,7 +28,15 @@ const MOCK_GRADING_QUEUE = [
 ];
 
 export function InstructorDashboard() {
-  const { setView } = useAcademy();
+  const { setView, navigateToCourse } = useAcademy();
+  const [gradedItems, setGradedItems] = useState<Set<number>>(new Set());
+
+  const gradeItem = (i: number) => setGradedItems((prev) => new Set([...prev, i]));
+
+  const viewItemCourse = (courseTitle: string) => {
+    const course = COURSES.find((c) => c.title === courseTitle);
+    if (course) navigateToCourse(course.id);
+  };
   const [activeTab, setActiveTab] = useState<"overview" | "students" | "grading">("overview");
 
   // Use first instructor as demo
@@ -145,8 +153,16 @@ export function InstructorDashboard() {
                       <p className="text-sm font-medium text-slate-900 truncate">{item.title}</p>
                       <p className="text-xs text-slate-400">{item.student} · {item.type} · {item.submitted}</p>
                     </div>
-                    <button className="px-3 py-1.5 bg-fuchsia-50 text-fuchsia-500 rounded-lg text-xs font-semibold hover:bg-amber-500/20 transition-colors">
-                      Review
+                    <button
+                      onClick={() => gradeItem(i)}
+                      disabled={gradedItems.has(i)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+                        gradedItems.has(i)
+                          ? "bg-emerald-500/10 text-emerald-500"
+                          : "bg-fuchsia-50 text-fuchsia-500 hover:bg-amber-500/20"
+                      }`}
+                    >
+                      {gradedItems.has(i) ? "✓ Reviewed" : "Review"}
                     </button>
                   </div>
                 ))}
@@ -196,7 +212,10 @@ export function InstructorDashboard() {
                             </span>
                           </td>
                           <td className="px-4 py-3">
-                            <button className="text-fuchsia-500 hover:text-amber-300 text-xs font-medium">
+                            <button
+                              onClick={() => viewItemCourse(student.course)}
+                              className="text-fuchsia-500 hover:text-amber-300 text-xs font-medium"
+                            >
                               View Details
                             </button>
                           </td>
@@ -290,11 +309,22 @@ export function InstructorDashboard() {
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-slate-400">Submitted {item.submitted}</span>
                   <div className="flex gap-2">
-                    <button className="px-3 py-1.5 bg-slate-100 text-slate-500 rounded-lg text-xs font-medium hover:bg-neutral-700 transition-colors flex items-center gap-1">
+                    <button
+                      onClick={() => viewItemCourse(item.course)}
+                      className="px-3 py-1.5 bg-slate-100 text-slate-500 rounded-lg text-xs font-medium hover:bg-neutral-700 transition-colors flex items-center gap-1"
+                    >
                       <Eye className="w-3.5 h-3.5" /> View
                     </button>
-                    <button className="px-3 py-1.5 bg-fuchsia-50 text-fuchsia-500 rounded-lg text-xs font-semibold hover:bg-amber-500/20 transition-colors">
-                      Grade
+                    <button
+                      onClick={() => gradeItem(i)}
+                      disabled={gradedItems.has(i)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+                        gradedItems.has(i)
+                          ? "bg-emerald-500/10 text-emerald-500"
+                          : "bg-fuchsia-50 text-fuchsia-500 hover:bg-amber-500/20"
+                      }`}
+                    >
+                      {gradedItems.has(i) ? "✓ Graded" : "Grade"}
                     </button>
                   </div>
                 </div>
