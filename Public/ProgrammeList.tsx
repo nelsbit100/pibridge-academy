@@ -250,10 +250,16 @@ export function ProgrammeDetail() {
               <div className="text-3xl font-bold text-slate-900 mb-1">GH₵ {programme.priceGHS.toLocaleString()}</div>
               <p className="text-xs text-slate-400 mb-6">Full programme · {programme.durationWeeks} weeks</p>
 
-              <button className="w-full py-3 bg-fuchsia-500 hover:bg-fuchsia-400 text-white font-bold rounded-xl transition-colors flex items-center justify-center gap-2 mb-3">
+              <button
+                onClick={() => navigateToCourse(courses[0].id)}
+                className="w-full py-3 bg-fuchsia-500 hover:bg-fuchsia-400 text-white font-bold rounded-xl transition-colors flex items-center justify-center gap-2 mb-3"
+              >
                 <Play className="w-5 h-5" /> Start Programme
               </button>
-              <button className="w-full py-3 bg-slate-100 hover:bg-neutral-700 text-slate-900 font-semibold rounded-xl transition-colors">
+              <button
+                onClick={() => navigateToCourse(courses[0].id)}
+                className="w-full py-3 bg-slate-100 hover:bg-neutral-700 text-slate-900 font-semibold rounded-xl transition-colors"
+              >
                 Try Free Lessons
               </button>
 

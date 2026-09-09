@@ -8,9 +8,11 @@ import { COURSES } from "../data";
 import {
   ArrowLeft, ChevronDown, ChevronRight, Play, FileText, HelpCircle,
   ClipboardList, FolderGit2, Monitor, CheckCircle, Lock, BookOpen,
-  X, Menu,
+  X, Menu, Sparkles,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
+import { AnimatedLessonVideo } from "./AnimatedLessonVideo";
+import { getLessonVideo } from "../lessonVideos";
 
 const LESSON_TYPE_ICONS: Record<string, typeof Play> = {
   video: Play,
@@ -50,6 +52,8 @@ export function CoursePlayer() {
     currentModule = course.modules[0];
     currentLesson = currentModule.lessons[0];
   }
+
+  const videoScript = currentLesson ? getLessonVideo(currentLesson.id) : undefined;
 
   // Auto-expand current module
   if (currentModule && !expandedModules.has(currentModule.id)) {
@@ -204,15 +208,25 @@ export function CoursePlayer() {
         {currentLesson && (
           <div className="max-w-4xl mx-auto px-4 py-8">
             {currentLesson.type === "video" && (
-              <div className="aspect-video bg-neutral-900 border border-neutral-800 rounded-2xl overflow-hidden mb-8 flex items-center justify-center">
-                <div className="text-center">
-                  <div className="w-20 h-20 rounded-full bg-amber-500/10 flex items-center justify-center mx-auto mb-4">
-                    <Play className="w-10 h-10 text-amber-400 ml-1" />
+              videoScript ? (
+                <div className="mb-8">
+                  <AnimatedLessonVideo script={videoScript} />
+                  <div className="flex items-center gap-2 mt-3 text-xs text-neutral-500">
+                    <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Animated lesson with voice narration — generated from the lesson script library.</span>
                   </div>
-                  <p className="text-white font-semibold">{currentLesson.title}</p>
-                  <p className="text-sm text-neutral-500 mt-1">{currentLesson.durationMinutes} minutes</p>
                 </div>
-              </div>
+              ) : (
+                <div className="aspect-video bg-neutral-900 border border-neutral-800 rounded-2xl overflow-hidden mb-8 flex items-center justify-center">
+                  <div className="text-center">
+                    <div className="w-20 h-20 rounded-full bg-amber-500/10 flex items-center justify-center mx-auto mb-4">
+                      <Play className="w-10 h-10 text-amber-400 ml-1" />
+                    </div>
+                    <p className="text-white font-semibold">{currentLesson.title}</p>
+                    <p className="text-sm text-neutral-500 mt-1">{currentLesson.durationMinutes} minutes</p>
+                  </div>
+                </div>
+              )
             )}
 
             {currentLesson.type === "reading" && currentLesson.content && (

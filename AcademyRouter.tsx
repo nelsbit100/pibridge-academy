@@ -24,10 +24,14 @@ import {
   LayoutDashboard, Award, FileText,
 } from "lucide-react";
 import { useState, useEffect, useRef, useCallback } from "react";
-import type { AcademyRole } from "./types";
+import type { AcademyRole, AcademyView } from "./types";
 
 // ── Scroll Reveal Observer ──
-function useScrollReveal() {
+// Re-runs whenever the active view changes so that newly rendered
+// .reveal elements are observed. Without re-observing on view change,
+// elements mounted after the shell (e.g. navigating back to Home) stay
+// at opacity 0 forever.
+function useScrollReveal(currentView: AcademyView) {
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
@@ -44,7 +48,7 @@ function useScrollReveal() {
     elements.forEach((el) => observer.observe(el));
 
     return () => observer.disconnect();
-  }, []);
+  }, [currentView]);
 }
 
 function AcademyNav() {
@@ -257,7 +261,8 @@ function AcademyViewRouter() {
 }
 
 function AcademyShell() {
-  useScrollReveal();
+  const { currentView } = useAcademy();
+  useScrollReveal(currentView);
   return (
     <div className="min-h-screen bg-aliceblue text-[#003135] font-sans">
       <AcademyNav />

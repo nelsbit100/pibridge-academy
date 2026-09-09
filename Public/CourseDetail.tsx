@@ -201,7 +201,10 @@ export function CourseDetail() {
                 >
                   <Play className="w-5 h-5" /> Enroll Now
                 </button>
-                <button className="w-full py-3 bg-slate-100 hover:bg-neutral-700 text-slate-900 font-semibold rounded-xl transition-colors">
+                <button
+                  onClick={() => navigateToLesson(course.id, course.modules[0].lessons[0].id)}
+                  className="w-full py-3 bg-slate-100 hover:bg-neutral-700 text-slate-900 font-semibold rounded-xl transition-colors"
+                >
                   Try Free Lessons
                 </button>
 
