@@ -12,6 +12,7 @@ import { ProfessionalProfile } from "./Learner/ProfessionalProfile";
 import { CareerDiscovery } from "./Learner/CareerDiscovery";
 import { CareerPathProgression } from "./Learner/CareerPathProgression";
 import { LivePresentation } from "./Learner/LivePresentation";
+import { CertificateView } from "./Learner/CertificateView";
 import { AIInterviewer } from "./Learner/AIInterviewer";
 import { PaymentCheckout } from "./Learner/PaymentCheckout";
 import { EmployerPortal } from "./Public/EmployerPortal";
@@ -180,7 +181,7 @@ function AcademyViewRouter() {
     case "my-courses":
       return <LearnerDashboard />;
     case "certificates":
-      return <LearnerDashboard />;
+      return <CertificateView onBack={() => setView("learner-dashboard")} />;
     case "quiz":
       return <CoursePlayer />;
     case "assignments":

@@ -2,7 +2,7 @@
 // PiBridge Academy — State Management Context
 // ──────────────────────────────────────────────────────────────
 
-import React, { createContext, useContext, useState, useCallback } from "react";
+import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
 import type {
   AcademyRole,
   AcademyView,
@@ -77,6 +77,23 @@ interface AcademyState {
 
 const AcademyContext = createContext<AcademyState | null>(null);
 
+const PROGRESS_KEY = "pibridge.progress.v1";
+const PLAYBACK_KEY = "pibridge.playback.v1";
+const CERTS_KEY = "pibridge.certificates.v1";
+
+/** Read a JSON value from localStorage, falling back to `fallback` on any problem. */
+function loadStore<T>(key: string, fallback: T): T {
+  if (typeof window === "undefined") return fallback;
+  try {
+    const raw = window.localStorage.getItem(key);
+    if (!raw) return fallback;
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === "object" ? (parsed as T) : fallback;
+  } catch {
+    return fallback; // corrupt or unavailable storage — start from defaults
+  }
+}
+
 export function AcademyProvider({ children }: { children: React.ReactNode }) {
   const [currentView, setCurrentView] = useState<AcademyView>("home");
   const [role, setRole] = useState<AcademyRole>("learner");
@@ -124,10 +141,101 @@ export function AcademyProvider({ children }: { children: React.ReactNode }) {
     [setView]
   );
 
-  // ── Mutable learner progress ──
-  const [progressState, setProgressState] = useState<Record<string, LearningProgress>>(LEARNING_PROGRESS);
+  // ── Mutable learner progress (persisted to localStorage) ──
+  const [progressState, setProgressState] = useState<Record<string, LearningProgress>>(
+    () => loadStore(PROGRESS_KEY, LEARNING_PROGRESS)
+  );
   // lesson playback positions: courseId -> lessonId -> seconds
-  const [playback, setPlayback] = useState<Record<string, Record<string, number>>>({});
+  const [playback, setPlayback] = useState<Record<string, Record<string, number>>>(() =>
+    loadStore(PLAYBACK_KEY, {})
+  );
+  // earned certificates (persisted) — starts from the demo data
+  const [certificatesState, setCertificatesState] = useState<Certificate[]>(() =>
+    loadStore(CERTS_KEY, CERTIFICATES)
+  );
+
+  // Persist on every change
+  useEffect(() => {
+    try {
+      localStorage.setItem(PROGRESS_KEY, JSON.stringify(progressState));
+    } catch {
+      /* storage full or unavailable — in-memory state still works */
+    }
+  }, [progressState]);
+  useEffect(() => {
+    try {
+      localStorage.setItem(PLAYBACK_KEY, JSON.stringify(playback));
+    } catch {
+      /* storage full or unavailable — in-memory state still works */
+    }
+  }, [playback]);
+  useEffect(() => {
+    try {
+      localStorage.setItem(CERTS_KEY, JSON.stringify(certificatesState));
+    } catch {
+      /* storage full or unavailable — in-memory state still works */
+    }
+  }, [certificatesState]);
+
+  // ── Course completion → auto-issue certificates ──
+  useEffect(() => {
+    const certified = new Set(certificatesState.map((c) => c.courseId));
+    for (const course of COURSES) {
+      if (certified.has(course.id)) continue;
+      const allLessons = course.modules.flatMap((m) => m.lessons);
+      if (allLessons.length === 0) continue;
+      const done = progressState[course.id]?.completedLessons ?? [];
+      if (!allLessons.every((l) => done.includes(l.id))) continue;
+
+      // Course complete — compute score from quiz results (fallback 100)
+      const scores = Object.values(progressState[course.id]?.quizScores ?? {});
+      const score = scores.length > 0
+        ? Math.round(scores.reduce((a, s) => a + s, 0) / scores.length)
+        : 100;
+      const programme = PROGRAMMES.find((p) => p.id === course.programmeId);
+      const slug = course.id
+        .replace("course-", "")
+        .split("-")
+        .map((w) => w[0]?.toUpperCase() ?? "")
+        .join("")
+        .slice(0, 4);
+      const credentialId = `PIBR-CERT-2026-${slug}-${String(certificatesState.length + 1).padStart(3, "0")}`;
+      const cert: Certificate = {
+        id: `cert-${Date.now()}`,
+        credentialId,
+        learnerId: DEMO_LEARNER.id,
+        learnerName: DEMO_LEARNER.name,
+        courseId: course.id,
+        courseName: course.title,
+        programmeId: course.programmeId,
+        programmeName: programme?.title ?? "PiBridge Academy",
+        instructorName: course.instructorName,
+        score,
+        issuedAt: new Date().toISOString().slice(0, 10),
+        verificationUrl: `https://pibridge.com/verify/${credentialId}`,
+        qrCode: credentialId,
+      };
+      setCertificatesState((prev) =>
+        prev.some((c) => c.courseId === course.id) ? prev : [...prev, cert]
+      );
+    }
+  }, [progressState, certificatesState]);
+
+  // Persist on every change
+  useEffect(() => {
+    try {
+      localStorage.setItem(PROGRESS_KEY, JSON.stringify(progressState));
+    } catch {
+      /* storage full or unavailable — in-memory state still works */
+    }
+  }, [progressState]);
+  useEffect(() => {
+    try {
+      localStorage.setItem(PLAYBACK_KEY, JSON.stringify(playback));
+    } catch {
+      /* storage full or unavailable — in-memory state still works */
+    }
+  }, [playback]);
 
   const markLessonComplete = useCallback((courseId: string, lessonId: string, durationMinutes = 0) => {
     setProgressState((prev) => {
@@ -272,7 +380,7 @@ export function AcademyProvider({ children }: { children: React.ReactNode }) {
     learner: DEMO_LEARNER,
     enrollments: ENROLLMENTS,
     progress: progressState,
-    certificates: CERTIFICATES,
+    certificates: certificatesState,
     markLessonComplete,
     recordQuizScore,
     recordSubmission,

@@ -354,6 +354,8 @@ export interface BulletsObj {
   heading: string;
   items: BulletItem[];
   accent?: AccentColor;
+  /** Hand-authored narration override (auto-generated when omitted). */
+  lines?: string[];
 }
 export function bullets(obj: BulletsObj, lead?: string): VideoScene;
 export function bullets(heading: string, items: { label: string; detail?: string }[], lines: Lines, accent?: AccentColor): VideoScene;
@@ -370,7 +372,7 @@ export function bullets(objOrHeading: BulletsObj | string, itemsOrLead?: { label
       heading: objOrHeading.heading,
       items: normalized,
       accent: objOrHeading.accent ?? "amber",
-      lines: narrateList(objOrHeading.heading, normalized.map((n) => (n.detail ? `${n.label} — ${n.detail}` : n.label))).concat(lead ? [lead] : []).slice(0, 6),
+      lines: objOrHeading.lines ?? narrateList(objOrHeading.heading, normalized.map((n) => (n.detail ? `${n.label} — ${n.detail}` : n.label))).concat(lead ? [lead] : []).slice(0, 6),
     };
   }
   return { kind: "bullets", heading: objOrHeading, items: itemsOrLead as { label: string; detail?: string }[], accent: accent ?? "amber", lines: lines ?? [] };
@@ -382,6 +384,8 @@ export interface StepsObj {
   sub?: string;
   steps: StepItem[];
   accent?: AccentColor;
+  /** Hand-authored narration override (auto-generated when omitted). */
+  lines?: string[];
 }
 export function steps(obj: StepsObj, lead?: string): VideoScene;
 export function steps(heading: string, s: { title: string; detail?: string }[], lines: Lines, accent?: AccentColor): VideoScene;
@@ -393,7 +397,7 @@ export function steps(objOrHeading: StepsObj | string, sOrLead?: { title: string
       heading: objOrHeading.heading,
       steps: normalized,
       accent: objOrHeading.accent ?? "cyan",
-      lines: narrateList(objOrHeading.heading, normalized.map((n) => `${normalized.indexOf(n) + 1}. ${n.title}${n.detail ? ` — ${n.detail}` : ""}`)),
+      lines: objOrHeading.lines ?? narrateList(objOrHeading.heading, normalized.map((n) => `${normalized.indexOf(n) + 1}. ${n.title}${n.detail ? ` — ${n.detail}` : ""}`)),
     };
   }
   return { kind: "steps", heading: objOrHeading, steps: sOrLead as { title: string; detail?: string }[], accent: accent ?? "cyan", lines: lines ?? [] };
@@ -559,6 +563,8 @@ export interface ScenarioObj {
   resolution?: string;
   question?: string;
   accent?: AccentColor;
+  /** Hand-authored narration override (auto-generated when omitted). */
+  lines?: string[];
 }
 export function scenario(obj: ScenarioObj, lead?: string): VideoScene;
 export function scenario(label: string, context: string, event: string, resolution: string, lines?: Lines, accent?: AccentColor, question?: string): VideoScene;
@@ -573,7 +579,7 @@ export function scenario(objOrLabel: ScenarioObj | string, contextOrLead?: strin
       resolution: objOrLabel.resolution ?? "",
       question: objOrLabel.question,
       accent: objOrLabel.accent ?? "rose",
-      lines: syn([objOrLabel.heading ?? "Case study.", text, objOrLabel.resolution]),
+      lines: objOrLabel.lines ?? syn([objOrLabel.heading ?? "Case study.", text, objOrLabel.resolution]),
     };
   }
   return { kind: "scenario", label: objOrLabel, context: contextOrLead ?? "", event: event ?? "", resolution: resolution ?? "", question, accent: accent ?? "rose", lines: lines ?? [contextOrLead ?? "", event ?? "", resolution ?? ""] };

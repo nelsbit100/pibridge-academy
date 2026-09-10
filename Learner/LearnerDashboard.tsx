@@ -6,21 +6,48 @@ import { useAcademy } from "../AcademyContext";
 import { COURSES, CERTIFICATES } from "../data";
 import {
   BookOpen, Clock, Award, Flame, TrendingUp, Play, ChevronRight,
-  BarChart3, CheckCircle, Calendar,
+  BarChart3, CheckCircle, Calendar, HelpCircle, PartyPopper,
 } from "lucide-react";
 import { motion } from "motion/react";
 
 export function LearnerDashboard() {
-  const { learner, enrollments, progress, navigateToCourse, setView } = useAcademy();
+  const { learner, enrollments, progress, navigateToCourse, setView, certificates } = useAcademy();
 
   const activeEnrollments = enrollments.filter((e) => e.status === "active");
   const completedEnrollments = enrollments.filter((e) => e.status === "completed");
 
+  // Real progress derived from the mutable progress state
+  const completedLessonCount = Object.values(progress).reduce(
+    (a, p) => a + p.completedLessons.length, 0
+  );
+  const totalMinutes = Object.values(progress).reduce((a, p) => a + p.totalTimeSpent, 0);
+  const hoursLearned = Math.round((totalMinutes / 60) * 10) / 10;
+  const quizEntries = Object.values(progress).flatMap((p) => Object.values(p.quizScores));
+  const avgQuizScore =
+    quizEntries.length > 0
+      ? Math.round(quizEntries.reduce((a, s) => a + s, 0) / quizEntries.length)
+      : null;
+
+  // Recently completed quiz lessons (best score per lesson id)
+  const recentQuizResults = Object.values(progress)
+    .flatMap((p) => Object.entries(p.quizScores).map(([lessonId, score]) => ({ lessonId, score })))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 4);
+  const quizLessonTitle = (lessonId: string) => {
+    for (const course of COURSES) {
+      for (const mod of course.modules) {
+        const l = mod.lessons.find((x) => x.id === lessonId);
+        if (l) return { title: l.title, course: course.title };
+      }
+    }
+    return { title: lessonId, course: "" };
+  };
+
   const stats = [
     { label: "Active Courses", value: activeEnrollments.length, icon: BookOpen, color: "text-violet-500", bg: "bg-violet-50", border: "border-violet-200" },
-    { label: "Hours Learned", value: learner.totalHoursLearned, icon: Clock, color: "text-cyan-500", bg: "bg-cyan-50", border: "border-cyan-200" },
-    { label: "Certificates", value: learner.certificates, icon: Award, color: "text-fuchsia-500", bg: "bg-fuchsia-50", border: "border-fuchsia-200" },
-    { label: "Day Streak", value: learner.streak, icon: Flame, color: "text-orange-500", bg: "bg-orange-50", border: "border-orange-200" },
+    { label: "Lessons Done", value: completedLessonCount, icon: CheckCircle, color: "text-emerald-500", bg: "bg-emerald-50", border: "border-emerald-200" },
+    { label: avgQuizScore !== null ? "Avg Quiz Score" : "Hours Learned", value: avgQuizScore !== null ? `${avgQuizScore}%` : hoursLearned, icon: avgQuizScore !== null ? HelpCircle : Clock, color: "text-cyan-500", bg: "bg-cyan-50", border: "border-cyan-200" },
+    { label: "Certificates", value: certificates.length, icon: Award, color: "text-fuchsia-500", bg: "bg-fuchsia-50", border: "border-fuchsia-200" },
   ];
 
   return (
@@ -71,6 +98,75 @@ export function LearnerDashboard() {
         <div className="grid lg:grid-cols-3 gap-8">
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-8">
+            {/* Course completion banner */}
+            {(() => {
+              const justCompleted = COURSES.filter((course) => {
+                const all = course.modules.flatMap((m) => m.lessons);
+                const done = progress[course.id]?.completedLessons ?? [];
+                return all.length > 0 && all.every((l) => done.includes(l.id));
+              });
+              if (justCompleted.length === 0) return null;
+              const course = justCompleted[0];
+              const cert = certificates.find((c) => c.courseId === course.id);
+              return (
+                <motion.div
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="p-5 bg-gradient-to-r from-emerald-500/10 to-cyan-500/10 border border-emerald-500/30 rounded-2xl flex items-center gap-4"
+                  data-testid="course-complete-banner"
+                >
+                  <div className="w-12 h-12 rounded-2xl bg-emerald-500/15 flex items-center justify-center shrink-0">
+                    <PartyPopper className="w-6 h-6 text-emerald-400" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-bold text-slate-900">Course complete — {course.title}!</p>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      {cert
+                        ? `Certificate issued · ${cert.credentialId}`
+                        : "Issuing your certificate…"}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setView("certificates")}
+                    className="shrink-0 px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-white font-bold rounded-xl text-sm transition-colors"
+                  >
+                    View Certificate
+                  </button>
+                </motion.div>
+              );
+            })()}
+
+            {/* Quiz Results */}
+            {recentQuizResults.length > 0 && (
+              <div>
+                <h2 className="text-lg font-bold text-slate-900 mb-4">Recent Quiz Results</h2>
+                <div className="grid sm:grid-cols-2 gap-3">
+                  {recentQuizResults.map((r) => {
+                    const info = quizLessonTitle(r.lessonId);
+                    const passed = r.score >= 70;
+                    return (
+                      <div
+                        key={r.lessonId}
+                        className="p-4 bg-aliceblue border border-slate-200 rounded-xl flex items-center gap-3"
+                      >
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+                          passed ? "bg-emerald-50" : "bg-amber-50"
+                        }`}>
+                          <span className={`text-sm font-bold ${passed ? "text-emerald-500" : "text-amber-500"}`}>
+                            {r.score}%
+                          </span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-slate-900 truncate">{info.title}</p>
+                          <p className="text-xs text-slate-400 truncate">{info.course} · best score</p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             {/* Continue Learning */}
             {activeEnrollments.length > 0 && (
               <div>
@@ -202,14 +298,18 @@ export function LearnerDashboard() {
               <h3 className="font-semibold text-slate-900 text-sm mb-3 flex items-center gap-2">
                 <Award className="w-4 h-4 text-fuchsia-500" /> Recent Certificates
               </h3>
-              {CERTIFICATES.length > 0 ? (
+              {certificates.length > 0 ? (
                 <div className="space-y-3">
-                  {CERTIFICATES.map((cert) => (
-                    <div key={cert.id} className="p-3 bg-slate-50 rounded-lg border border-slate-100">
+                  {certificates.slice(-3).reverse().map((cert) => (
+                    <button
+                      key={cert.id}
+                      onClick={() => setView("certificates")}
+                      className="w-full text-left p-3 bg-slate-50 hover:bg-slate-100 rounded-lg border border-slate-100 transition-colors"
+                    >
                       <p className="text-sm font-medium text-slate-900">{cert.courseName}</p>
                       <p className="text-xs text-slate-400 mt-0.5">Score: {cert.score}% · {new Date(cert.issuedAt).toLocaleDateString()}</p>
                       <p className="text-xs text-fuchsia-500 mt-1 font-mono">{cert.credentialId}</p>
-                    </div>
+                    </button>
                   ))}
                 </div>
               ) : (

@@ -22,6 +22,7 @@ import { deepDevOps as deepDO } from "./lessonVideos/do";
 
 import type { LessonVideoScript } from "./lessonVideos/core";
 import { enrichScript, lessonOrder } from "./lessonVideos/enrich";
+import { DEEPENINGS } from "./lessonVideos/deepen";
 
 // ════════════════════════════════════════════════════════════════
 // Registry
@@ -70,10 +71,38 @@ for (const list of Object.values(BY_COURSE)) {
   });
 }
 
+/**
+ * Insert hand-authored deepening scenes (walkthrough, pitfalls, war story)
+ * for the 20 shortest lessons. Placement: walkthrough + pitfalls after the
+ * last key-terms scene; war story before the closing recap.
+ */
+function applyDeepening(script: LessonVideoScript): LessonVideoScript {
+  const deep = DEEPENINGS[script.lessonId];
+  if (!deep) return script;
+  const scenes = [...script.scenes];
+  // Insert war story just before the recap (which stays last)
+  const recapIdx = scenes.findIndex((s) => s.kind === "recap");
+  const warStoryAt = recapIdx >= 0 ? recapIdx : scenes.length;
+  scenes.splice(warStoryAt, 0, deep.warStory);
+  // Insert walkthrough + pitfalls after the last key-terms scene (or title)
+  let insertAt = 0;
+  for (let i = 0; i < scenes.length; i++) {
+    if (scenes[i].kind === "keyterms") insertAt = i + 1;
+  }
+  if (insertAt === 0) {
+    for (let i = 0; i < scenes.length; i++) {
+      if (scenes[i].kind === "title") { insertAt = i + 1; break; }
+    }
+  }
+  scenes.splice(insertAt, 0, deep.walkthrough, deep.pitfalls);
+  return { ...script, scenes };
+}
+
 export const LESSON_VIDEOS: Record<string, LessonVideoScript> = Object.fromEntries(
   ALL.map((s) => {
     const withId = withCourse(s);
-    return [s.lessonId, enrichScript(withId, BY_COURSE[withId.courseId ?? ""] ?? [withId])];
+    const deep = applyDeepening(withId);
+    return [s.lessonId, enrichScript(deep, BY_COURSE[withId.courseId ?? ""] ?? [withId])];
   })
 );
 
