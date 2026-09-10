@@ -264,7 +264,9 @@ function AcademyViewRouter() {
   }
 }
 
-function AcademyShell() {
+// Exported for tests (AcademyApp nests its own provider; tests need the
+// shell under a single shared provider to drive navigation programmatically).
+export function AcademyShell() {
   const { currentView } = useAcademy();
   useScrollReveal(currentView);
   return (

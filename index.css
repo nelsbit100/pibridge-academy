@@ -365,3 +365,76 @@ body {
   height: 1px;
   background: linear-gradient(90deg, transparent, rgba(61, 82, 160, 0.2), transparent);
 }
+
+/* ──────────────────────────────────────────────────────────────
+   Print styles — certificates & professional passport export
+   cleanly to paper/PDF (Ctrl+P / window.print()).
+   ────────────────────────────────────────────────────────────── */
+@media print {
+  /* Print exactly what's on screen, in print colors */
+  html, body {
+    background: #ffffff !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Chrome and friends hide position:fixed app chrome automatically;
+     force-hide anything sticky and let content flow naturally. */
+  nav, header, aside,
+  .no-print,
+  button {
+    display: none !important;
+  }
+
+  /* Neutralize dark screens and animations */
+  * {
+    animation: none !important;
+    transition: none !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
+  .reveal, .reveal-left, .reveal-right {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+
+  /* Expand the certificate area to the full page */
+  [data-testid="certificate-card"],
+  [data-testid="passport-card"] {
+    border: 2px solid #b45309 !important;
+    background: #fffbeb !important;
+    color: #1c1917 !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+    margin: 10mm auto !important;
+    width: auto !important;
+    max-width: 180mm !important;
+  }
+
+  [data-testid="certificate-card"] *,
+  [data-testid="passport-card"] * {
+    color: #1c1917 !important;
+  }
+
+  [data-testid="certificate-card"] .text-amber-400,
+  [data-testid="passport-card"] .text-amber-400 {
+    color: #b45309 !important;
+  }
+
+  [data-testid="certificate-card"] .text-emerald-400,
+  [data-testid="passport-card"] .text-emerald-400 {
+    color: #047857 !important;
+  }
+
+  /* Only the first certificate page prints itself; strip wrappers' padding */
+  .max-w-4xl, .max-w-6xl {
+    max-width: none !important;
+    padding: 0 !important;
+  }
+
+  /* Keep section lists (all certificates, review panels) off the paper */
+  h3 { break-after: avoid; }
+}

@@ -5,9 +5,11 @@
 import { useState } from "react";
 import { useAcademy } from "../AcademyContext";
 import { COURSES, INSTRUCTORS } from "../data";
+import type { LearningProgress } from "../types";
 import {
   Users, BookOpen, BarChart3, Clock, FileText, Star, TrendingUp,
-  ChevronRight, AlertCircle, CheckCircle, Eye,
+  ChevronRight, AlertCircle, CheckCircle, Eye, HelpCircle, ClipboardList,
+  FolderGit2, Monitor, Award,
 } from "lucide-react";
 import { motion } from "motion/react";
 
@@ -28,27 +30,130 @@ const MOCK_GRADING_QUEUE = [
 ];
 
 export function InstructorDashboard() {
-  const { setView, navigateToCourse } = useAcademy();
-  const [gradedItems, setGradedItems] = useState<Set<number>>(new Set());
+  const { setView, navigateToCourse, progress, gradeSubmission } = useAcademy();
+  const [activeTab, setActiveTab] = useState<"overview" | "students" | "grading">("overview");
 
-  const gradeItem = (i: number) => setGradedItems((prev) => new Set([...prev, i]));
+  // Use first instructor as demo
+  const instructor = INSTRUCTORS[0];
+  const instructorCourses = COURSES.filter((c) => instructor.courseIds.includes(c.id));  const [gradedItems, setGradedItems] = useState<Set<string>>(new Set());
+  const [draftScores, setDraftScores] = useState<Record<string, number>>({});
+  const gradeItem = (key: string) => setGradedItems((prev) => new Set([...prev, key]));
+
+  /** Submit a final grade for a pending submission (assignment/project). */
+  const submitGrade = (item: { key: string; courseId: string; lessonId: string; type: QueueItem["type"] }) => {
+    if (item.type !== "Assignment" && item.type !== "Project") return;
+    const raw = draftScores[item.key];
+    const score = Number(raw);
+    if (Number.isNaN(score) || score < 0 || score > 100) return;
+    gradeSubmission(item.courseId, item.lessonId, item.type === "Assignment" ? "assignment" : "project", Math.round(score));
+    gradeItem(item.key);
+  };
 
   const viewItemCourse = (courseTitle: string) => {
     const course = COURSES.find((c) => c.title === courseTitle);
     if (course) navigateToCourse(course.id);
   };
-  const [activeTab, setActiveTab] = useState<"overview" | "students" | "grading">("overview");
 
-  // Use first instructor as demo
-  const instructor = INSTRUCTORS[0];
-  const instructorCourses = COURSES.filter((c) => instructor.courseIds.includes(c.id));
+  /**
+   * Real grading queue derived from learner progress: every recorded quiz
+   * score, assignment and project submission becomes a gradable row.
+   */
+  interface QueueItem {
+    key: string;
+    student: string;
+    learnerId: string;
+    courseId: string;
+    courseTitle: string;
+    lessonId: string;
+    title: string;
+    type: "Quiz" | "Assignment" | "Project" | "Lab";
+    score: number | null; // null = submitted, awaiting grade
+    submittedAt: string;
+  }
+
+  const gradeQueue: QueueItem[] = (() => {
+    const items: QueueItem[] = [];
+    const progressByLearner: Record<string, Record<string, LearningProgress>> = {
+      ["learner-1"]: progress,
+    };
+    for (const [learnerId, byCourse] of Object.entries(progressByLearner)) {
+      for (const [courseId, prog] of Object.entries(byCourse)) {
+        const course = COURSES.find((c) => c.id === courseId);
+        if (!course) continue;
+        const lessonInfo = (lessonId: string) => {
+          for (const mod of course.modules) {
+            const l = mod.lessons.find((x) => x.id === lessonId);
+            if (l) return l;
+          }
+          return undefined;
+        };
+        for (const [lessonId, score] of Object.entries(prog.quizScores)) {
+          const l = lessonInfo(lessonId);
+          if (!l) continue;
+          items.push({
+            key: `quiz:${courseId}:${lessonId}`,
+            student: "Kofi Mensah",
+            learnerId,
+            courseId,
+            courseTitle: course.title,
+            lessonId,
+            title: l.title,
+            type: "Quiz",
+            score,
+            submittedAt: prog.lastAccessedAt,
+          });
+        }
+        // score 0 = submitted, pending instructor grade (see recordSubmission)
+        for (const [lessonId, score] of Object.entries(prog.assignmentScores)) {
+          const l = lessonInfo(lessonId);
+          if (!l) continue;
+          items.push({
+            key: `assignment:${courseId}:${lessonId}`,
+            student: "Kofi Mensah",
+            learnerId,
+            courseId,
+            courseTitle: course.title,
+            lessonId,
+            title: l.title,
+            type: "Assignment",
+            score: score === 0 ? null : score,
+            submittedAt: prog.lastAccessedAt,
+          });
+        }
+        for (const [lessonId, score] of Object.entries(prog.projectScores)) {
+          const l = lessonInfo(lessonId);
+          if (!l) continue;
+          items.push({
+            key: `project:${courseId}:${lessonId}`,
+            student: "Kofi Mensah",
+            learnerId,
+            courseId,
+            courseTitle: course.title,
+            lessonId,
+            title: l.title,
+            type: "Project",
+            score: score === 0 ? null : score,
+            submittedAt: prog.lastAccessedAt,
+          });
+        }
+      }
+    }
+    return items.sort((a, b) => (a.score ?? -1) - (b.score ?? -1)); // ungraded first
+  })();
 
   const stats = [
     { label: "Total Students", value: instructor.studentCount, icon: Users, color: "text-blue-400 bg-blue-500/10" },
     { label: "Courses", value: instructorCourses.length, icon: BookOpen, color: "text-fuchsia-500 bg-fuchsia-50" },
     { label: "Avg Rating", value: instructor.rating.toFixed(1), icon: Star, color: "text-emerald-400 bg-emerald-500/10" },
-    { label: "Pending Reviews", value: MOCK_GRADING_QUEUE.length, icon: FileText, color: "text-orange-400 bg-orange-500/10" },
+    { label: "Submissions to Review", value: gradeQueue.filter((q) => q.score === null).length, icon: FileText, color: "text-orange-400 bg-orange-500/10" },
   ];
+
+  const TYPE_ICON: Record<QueueItem["type"], typeof HelpCircle> = {
+    Quiz: HelpCircle,
+    Assignment: ClipboardList,
+    Project: FolderGit2,
+    Lab: Monitor,
+  };
 
   return (
     <div className="min-h-screen bg-aliceblue">
@@ -93,7 +198,7 @@ export function InstructorDashboard() {
           {[
             { key: "overview", label: "Overview" },
             { key: "students", label: "Students" },
-            { key: "grading", label: `Grading (${MOCK_GRADING_QUEUE.length})` },
+            { key: "grading", label: `Grading (${gradeQueue.length})` },
           ].map((tab) => (
             <button
               key={tab.key}
@@ -141,31 +246,36 @@ export function InstructorDashboard() {
             <div>
               <h2 className="text-lg font-bold text-slate-900 mb-4">Grading Queue</h2>
               <div className="space-y-3">
-                {MOCK_GRADING_QUEUE.map((item, i) => (
-                  <div
-                    key={i}
-                    className="flex items-center gap-3 p-4 bg-white border border-slate-200 rounded-xl"
-                  >
-                    <div className="w-10 h-10 rounded-lg bg-orange-500/10 flex items-center justify-center shrink-0">
-                      <FileText className="w-5 h-5 text-orange-400" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-slate-900 truncate">{item.title}</p>
-                      <p className="text-xs text-slate-400">{item.student} · {item.type} · {item.submitted}</p>
-                    </div>
-                    <button
-                      onClick={() => gradeItem(i)}
-                      disabled={gradedItems.has(i)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
-                        gradedItems.has(i)
-                          ? "bg-emerald-500/10 text-emerald-500"
-                          : "bg-fuchsia-50 text-fuchsia-500 hover:bg-amber-500/20"
-                      }`}
+                {gradeQueue.slice(0, 4).map((item) => {
+                  const Icon = TYPE_ICON[item.type];
+                  return (
+                    <div
+                      key={item.key}
+                      className="flex items-center gap-3 p-4 bg-white border border-slate-200 rounded-xl"
                     >
-                      {gradedItems.has(i) ? "✓ Reviewed" : "Review"}
-                    </button>
-                  </div>
-                ))}
+                      <div className="w-10 h-10 rounded-lg bg-orange-500/10 flex items-center justify-center shrink-0">
+                        <Icon className="w-5 h-5 text-orange-400" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-slate-900 truncate">{item.title}</p>
+                        <p className="text-xs text-slate-400">{item.student} · {item.type} · {item.score !== null ? `${item.score}%` : "awaiting grade"}</p>
+                      </div>
+                      <button
+                        onClick={() => setActiveTab("grading")}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+                          item.score !== null || gradedItems.has(item.key)
+                            ? "bg-emerald-500/10 text-emerald-500"
+                            : "bg-fuchsia-50 text-fuchsia-500 hover:bg-amber-500/20"
+                        }`}
+                      >
+                        {item.score !== null || gradedItems.has(item.key) ? "✓ Reviewed" : "Review"}
+                      </button>
+                    </div>
+                  );
+                })}
+                {gradeQueue.length === 0 && (
+                  <p className="text-sm text-slate-400">No submissions yet — quiz attempts and project submissions appear here.</p>
+                )}
               </div>
             </div>
 
@@ -295,41 +405,84 @@ export function InstructorDashboard() {
         {/* Grading Tab */}
         {activeTab === "grading" && (
           <div className="space-y-4">
-            {MOCK_GRADING_QUEUE.map((item, i) => (
-              <div key={i} className="bg-white border border-slate-200 rounded-xl p-5">
-                <div className="flex items-start justify-between mb-3">
-                  <div>
-                    <h3 className="font-semibold text-slate-900">{item.title}</h3>
-                    <p className="text-sm text-slate-500 mt-0.5">{item.student} · {item.course}</p>
-                  </div>
-                  <span className="px-2.5 py-1 bg-orange-500/10 text-orange-400 rounded-lg text-xs font-semibold">
-                    {item.type}
-                  </span>
+            {gradeQueue.length === 0 && (
+              <div className="text-center py-16">
+                <div className="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto mb-4">
+                  <CheckCircle className="w-7 h-7 text-slate-400" />
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-slate-400">Submitted {item.submitted}</span>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => viewItemCourse(item.course)}
-                      className="px-3 py-1.5 bg-slate-100 text-slate-500 rounded-lg text-xs font-medium hover:bg-neutral-700 transition-colors flex items-center gap-1"
-                    >
-                      <Eye className="w-3.5 h-3.5" /> View
-                    </button>
-                    <button
-                      onClick={() => gradeItem(i)}
-                      disabled={gradedItems.has(i)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
-                        gradedItems.has(i)
-                          ? "bg-emerald-500/10 text-emerald-500"
-                          : "bg-fuchsia-50 text-fuchsia-500 hover:bg-amber-500/20"
-                      }`}
-                    >
-                      {gradedItems.has(i) ? "✓ Graded" : "Grade"}
-                    </button>
-                  </div>
-                </div>
+                <h3 className="font-semibold text-slate-900">Nothing to grade</h3>
+                <p className="text-sm text-slate-500 mt-1">
+                  Quiz attempts, assignments and projects recorded in learner progress appear here.
+                </p>
               </div>
-            ))}
+            )}
+            {gradeQueue.map((item) => {
+              const Icon = TYPE_ICON[item.type];
+              const isGraded = item.score !== null || gradedItems.has(item.key);
+              return (
+                <div key={item.key} className="bg-white border border-slate-200 rounded-xl p-5">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex items-start gap-3 min-w-0">
+                      <div className="w-10 h-10 rounded-xl bg-orange-500/10 flex items-center justify-center shrink-0">
+                        <Icon className="w-5 h-5 text-orange-400" />
+                      </div>
+                      <div className="min-w-0">
+                        <h3 className="font-semibold text-slate-900 truncate">{item.title}</h3>
+                        <p className="text-sm text-slate-500 mt-0.5">{item.student} · {item.courseTitle}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="px-2.5 py-1 bg-orange-500/10 text-orange-400 rounded-lg text-xs font-semibold">
+                        {item.type}
+                      </span>
+                      {item.score !== null && (
+                        <span className={`px-2.5 py-1 rounded-lg text-xs font-bold ${
+                          item.score >= 70 ? "bg-emerald-500/10 text-emerald-500" : "bg-red-500/10 text-red-500"
+                        }`}>
+                          {item.score}%
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-xs text-slate-400">
+                      Submitted {new Date(item.submittedAt).toLocaleString()}
+                      {item.score !== null ? " · auto-scored" : " · awaiting manual grade"}
+                    </span>
+                    <div className="flex gap-2 items-center">
+                      <button
+                        onClick={() => viewItemCourse(item.courseTitle)}
+                        className="px-3 py-1.5 bg-slate-100 text-slate-500 rounded-lg text-xs font-medium hover:bg-neutral-700 transition-colors flex items-center gap-1"
+                      >
+                        <Eye className="w-3.5 h-3.5" /> View
+                      </button>
+                      {!isGraded && item.type !== "Quiz" && (
+                        <div className="flex items-center gap-1.5">
+                          <input
+                            type="number"
+                            min={0}
+                            max={100}
+                            value={draftScores[item.key] ?? ""}
+                            onChange={(e) =>
+                              setDraftScores((prev) => ({ ...prev, [item.key]: Number(e.target.value) }))
+                            }
+                            placeholder="0-100"
+                            aria-label={`Grade for ${item.title}`}
+                            className="w-20 px-2 py-1.5 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-fuchsia-400"
+                          />
+                          <button
+                            onClick={() => submitGrade(item)}
+                            className="px-3 py-1.5 bg-fuchsia-50 text-fuchsia-500 rounded-lg text-xs font-semibold hover:bg-amber-500/20 transition-colors"
+                          >
+                            Grade
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>

@@ -139,12 +139,16 @@ export function CoursePlayer() {
 
   const submitWritten = (kind: "assignment" | "project" | "lab") => {
     if (!currentLesson) return;
-    const score = kind === "lab" ? 100 : 85;
-    recordSubmission(course.id, currentLesson.id, kind, score);
+    if (kind === "lab") {
+      recordSubmission(course.id, currentLesson.id, kind, 100);
+      setFeedback("Lab session logged as complete.");
+      return;
+    }
+    // Written work enters the instructor's grading queue as pending (0);
+    // the score is set when the instructor grades it.
+    recordSubmission(course.id, currentLesson.id, kind, 0);
     setFeedback(
-      kind === "lab"
-        ? "Lab session logged as complete."
-        : `${kind === "assignment" ? "Assignment" : "Project"} submitted (demo grading: logged at ${score}%).`
+      `${kind === "assignment" ? "Assignment" : "Project"} submitted — awaiting instructor grading.`
     );
   };
 

@@ -70,6 +70,13 @@ interface AcademyState {
     kind: "assignment" | "project" | "lab",
     score: number
   ) => void;
+  /** Instructor sets the final score for a submitted assignment/project. */
+  gradeSubmission: (
+    courseId: string,
+    lessonId: string,
+    kind: "assignment" | "project",
+    score: number
+  ) => void;
   playbackPositions: Record<string, Record<string, number>>;
   savePlayback: (courseId: string, lessonId: string, seconds: number) => void;
   clearPlayback: (courseId: string, lessonId: string) => void;
@@ -221,22 +228,6 @@ export function AcademyProvider({ children }: { children: React.ReactNode }) {
     }
   }, [progressState, certificatesState]);
 
-  // Persist on every change
-  useEffect(() => {
-    try {
-      localStorage.setItem(PROGRESS_KEY, JSON.stringify(progressState));
-    } catch {
-      /* storage full or unavailable — in-memory state still works */
-    }
-  }, [progressState]);
-  useEffect(() => {
-    try {
-      localStorage.setItem(PLAYBACK_KEY, JSON.stringify(playback));
-    } catch {
-      /* storage full or unavailable — in-memory state still works */
-    }
-  }, [playback]);
-
   const markLessonComplete = useCallback((courseId: string, lessonId: string, durationMinutes = 0) => {
     setProgressState((prev) => {
       const p = prev[courseId];
@@ -327,6 +318,35 @@ export function AcademyProvider({ children }: { children: React.ReactNode }) {
     []
   );
 
+  /**
+   * Instructor grades a pending submission: replaces the placeholder 0
+   * (pending marker) with the final score in learner progress.
+   */
+  const gradeSubmission = useCallback(
+    (courseId: string, lessonId: string, kind: "assignment" | "project", score: number) => {
+      setProgressState((prev) => {
+        const base = prev[courseId];
+        if (!base) return prev;
+        const scores =
+          kind === "assignment" ? base.assignmentScores : base.projectScores;
+        // Only grade things that were actually submitted
+        if (!(lessonId in scores)) return prev;
+        return {
+          ...prev,
+          [courseId]: {
+            ...base,
+            [kind === "assignment" ? "assignmentScores" : "projectScores"]: {
+              ...scores,
+              [lessonId]: score,
+            },
+            lastAccessedAt: new Date().toISOString(),
+          },
+        };
+      });
+    },
+    []
+  );
+
   const savePlayback = useCallback((courseId: string, lessonId: string, seconds: number) => {
     setPlayback((prev) => {
       const forCourse = prev[courseId] ?? {};
@@ -384,6 +404,7 @@ export function AcademyProvider({ children }: { children: React.ReactNode }) {
     markLessonComplete,
     recordQuizScore,
     recordSubmission,
+    gradeSubmission,
     playbackPositions: playback,
     savePlayback,
     clearPlayback,

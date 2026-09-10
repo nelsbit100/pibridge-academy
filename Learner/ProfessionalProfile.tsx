@@ -416,7 +416,7 @@ export function ProfessionalProfile() {
         {/* Professional Passport Tab */}
         {activeTab === "passport" && (
           <div className="max-w-2xl mx-auto">
-            <div className="bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900 border border-fuchsia-200 rounded-2xl overflow-hidden shadow-2xl shadow-amber-500/5">
+            <div data-testid="passport-card" className="bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900 border border-fuchsia-200 rounded-2xl overflow-hidden shadow-2xl shadow-amber-500/5">
               {/* Passport Header */}
               <div className="bg-gradient-to-r from-amber-600/20 via-amber-500/10 to-amber-600/20 p-6 border-b border-fuchsia-200 text-center">
                 <div className="flex items-center justify-center gap-2 mb-2">
