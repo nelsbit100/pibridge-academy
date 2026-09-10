@@ -13,6 +13,7 @@ import {
   ACCENTS, scheduleScene, quizRevealAt,
   type LessonVideoScript, type VideoScene, type SceneSchedule, type CompareSceneData,
 } from "../lessonVideos/core";
+import { renderSvgTemplate } from "./svgDiagrams";
 
 const C = {
   panel: "#141414",
@@ -653,6 +654,18 @@ function QuizCardScene({ scene, accent, elapsed }: { scene: Extract<VideoScene, 
   );
 }
 
+// ── Animated SVG diagram scene — hand-crafted illustrations ──
+function SvgDiagScene({ scene, elapsed }: { scene: Extract<VideoScene, { kind: "svgdiag" }>; elapsed: number }) {
+  const accent = accentHex(scene.accent);
+  return (
+    <SceneFrame accent={accent}>
+      <h3 className="text-xl md:text-2xl font-bold text-white mb-1 text-center">{scene.heading}</h3>
+      {scene.subtitle && <p className="text-xs text-neutral-500 mb-2 text-center">{scene.subtitle}</p>}
+      <div className="-mt-2">{renderSvgTemplate(scene.template, scene.accent ?? "cyan", scene.labels, elapsed)}</div>
+    </SceneFrame>
+  );
+}
+
 function SceneRenderer({ scene, schedule, elapsed }: { scene: VideoScene; schedule: SceneSchedule; elapsed: number }) {
   const accent = accentHex(scene.accent);
   switch (scene.kind) {
@@ -671,6 +684,7 @@ function SceneRenderer({ scene, schedule, elapsed }: { scene: VideoScene; schedu
     case "quizcard": return <QuizCardScene scene={scene} accent={accent} elapsed={elapsed} />;
     case "stat": return <StatScene scene={scene} accent={accent} />;
     case "statgrid": return <StatGridScene scene={scene} accent={accent} />;
+    case "svgdiag": return <SvgDiagScene scene={scene} elapsed={elapsed} />;
     case "recap": return <RecapScene scene={scene} accent={accent} />;
   }
 }

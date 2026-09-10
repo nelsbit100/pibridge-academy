@@ -6,10 +6,12 @@
 // war story before the recap) — enrichment still runs on top.
 // ──────────────────────────────────────────────────────────────
 
+import { DEEPEN2 } from "./deepen2";
 import {
   steps,
   bullets,
   scenario,
+  svgdiag,
   type LessonVideoScript,
   type VideoScene,
   type StepsObj,
@@ -17,7 +19,12 @@ import {
   type ScenarioObj,
 } from "./core";
 
+// Re-export the authoring helpers so deepening files can import from "./deepen".
+export { steps, bullets, scenario, svgdiag } from "./core";
+
 export interface Deepening {
+  /** Animated SVG illustration — inserted first (before walkthrough). */
+  diagram?: VideoScene;
   /** Practical walkthrough — inserted after the last key-terms/terminal scene. */
   walkthrough: VideoScene;
   /** Where learners actually fail — inserted after the walkthrough. */
@@ -29,6 +36,17 @@ export interface Deepening {
 // ── Networking ──
 
 const wireshark: Deepening = {
+  diagram: svgdiag({
+    heading: "Watch the packet's journey",
+    sub: "a capture is the network's own testimony",
+    template: "packet",
+    accent: "green",
+    lines: [
+      "Wireshark makes the invisible visible: every packet on the wire, every header, every hop — the journey of your data captured in frames.",
+      "Follow a TCP stream and you read a conversation instead of a pile of packets; sort by length and the bulk transfers — the exfiltration fingerprints — rise to the top.",
+      "The capture is evidence: filters narrow it, streams read it, and the sequence tells the story that no single packet can.",
+    ],
+  }),
   walkthrough: steps({
     heading: "Walkthrough · your first investigation capture",
     accent: "green",
@@ -84,6 +102,18 @@ const wireshark: Deepening = {
 };
 
 const linuxNetworking: Deepening = {
+  diagram: svgdiag({
+    heading: "The Linux network toolbox",
+    sub: "one command per question — from interface to packet",
+    template: "grid",
+    labels: ["ip addr", "ss -tlnp", "ping", "traceroute", "curl", "tcpdump"],
+    accent: "green",
+    lines: [
+      "Linux networking is a question-answer kit: ip addr asks 'do I have an address?', ss asks 'who is listening?', and ping asks 'can I reach it?'.",
+      "traceroute maps the path hop by hop, curl speaks to actual services, and tcpdump shows the raw packets when everything else lies.",
+      "The skill is knowing which question to ask at which layer — each command eliminates half the remaining possibilities.",
+    ],
+  }),
   walkthrough: steps({
     heading: "Walkthrough · diagnose 'the server is unreachable'",
     accent: "cyan",
@@ -139,6 +169,18 @@ const linuxNetworking: Deepening = {
 };
 
 const jsFundamentals: Deepening = {
+  diagram: svgdiag({
+    heading: "Variables, types, and the closure",
+    sub: "the three foundations everything else is built on",
+    template: "grid",
+    labels: ["let / const", "data types", "functions", "scope", "hoisting", "closures"],
+    accent: "amber",
+    lines: [
+      "Variables and types are the vocabulary: primitives hold values, objects hold references, and const prevents reassignment, not mutation.",
+      "Scope decides what your code can see — and closures are the superpower where a function remembers the scope it was born in.",
+      "Hoisting explains the 'why' behind a whole class of confusing bugs: declarations move, initializations don't.",
+    ],
+  }),
   walkthrough: steps({
     heading: "Walkthrough · refactor copy-paste chaos into functions",
     accent: "amber",
@@ -195,6 +237,18 @@ const jsFundamentals: Deepening = {
 // ── Web & React ──
 
 const devtools: Deepening = {
+  diagram: svgdiag({
+    heading: "DevTools is a microscope",
+    sub: "six panels, one goal: see what the browser is really doing",
+    template: "grid",
+    labels: ["Elements", "Console", "Sources", "Network", "Performance", "Application"],
+    accent: "green",
+    lines: [
+      "DevTools turns the browser inside out: Elements shows the live DOM, Console shows the errors, and Sources is where you debug step by step.",
+      "Network is the request lifecycle made visible — timing, headers, status codes, waterfalls — and Performance shows where the main thread actually waited.",
+      "Application is the state attic: storage, cookies, service workers — the things that persist after the tab closes.",
+    ],
+  }),
   walkthrough: steps({
     heading: "Walkthrough · debug a layout in 4 moves",
     accent: "amber",
@@ -248,6 +302,18 @@ const devtools: Deepening = {
 };
 
 const reactRouter: Deepening = {
+  diagram: svgdiag({
+    heading: "The URL is state",
+    sub: "routes map paths to components — navigation is just a state change",
+    template: "grid",
+    labels: ["BrowserRouter", "Routes", "Route path", "Link / NavLink", "URL params", "nested routes"],
+    accent: "sky",
+    lines: [
+      "React Router treats the URL as state: a path matches a route, the route renders a component, and navigating is just changing that state.",
+      "Links are declarative navigation — no full page reloads, no hand-written history manipulation; the router does the plumbing.",
+      "URL params and nested routes let one layout wrap many pages — the path structure becomes the component tree.",
+    ],
+  }),
   walkthrough: steps({
     heading: "Walkthrough · structure a real app's routes",
     accent: "cyan",
@@ -303,6 +369,18 @@ const reactRouter: Deepening = {
 };
 
 const whyLinux: Deepening = {
+  diagram: svgdiag({
+    heading: "Linux runs the internet",
+    sub: "servers, cloud, containers, security tooling — all Linux",
+    template: "grid",
+    labels: ["Servers", "Cloud", "Containers", "Security tools", "Embedded / IoT", "Supercomputers"],
+    accent: "green",
+    lines: [
+      "Linux is the operating system of the internet: most web servers, cloud instances, and containers are Linux under the hood.",
+      "Security tooling — packet capture, forensics, penetration testing — lives on Linux, so the analyst's environment is the target environment.",
+      "'Everything is a file' is the philosophy that makes it composable: processes, devices, and sockets all speak the same file-like interface.",
+    ],
+  }),
   walkthrough: steps({
     heading: "Walkthrough · survive your first 10 minutes on a server",
     accent: "cyan",
@@ -358,6 +436,17 @@ const whyLinux: Deepening = {
 };
 
 const cssSelectors: Deepening = {
+  diagram: svgdiag({
+    heading: "The specificity war",
+    sub: "who wins when two rules disagree",
+    template: "specificity",
+    accent: "green",
+    lines: [
+      "CSS conflicts are decided by specificity: inline styles beat ids, ids beat classes, classes beat elements — and !important beats all of them.",
+      "The cascade compares specificity point by point — eleven classes still lose to one id — which is why 'just add more selectors' spirals.",
+      "The professional habit is low-specificity selectors and a system: when two rules fight, the fix is structure, not a longer selector.",
+    ],
+  }),
   walkthrough: steps({
     heading: "Walkthrough · outrank specificity instead of fighting it",
     accent: "amber",
@@ -412,6 +501,18 @@ const cssSelectors: Deepening = {
 // ── Linux & Security Fundamentals ──
 
 const systemd: Deepening = {
+  diagram: svgdiag({
+    heading: "A service's lifecycle",
+    sub: "unit files, systemctl verbs, and the journal that tells the story",
+    template: "tiers",
+    labels: ["start", "active (running)", "inactive", "failed → restart"],
+    accent: "green",
+    lines: [
+      "systemd manages services as units: a unit file declares how to start, stop, and restart a service, and systemctl is the control panel.",
+      "A service's lifecycle is a small ladder: start brings it up, it runs active, it can become inactive on stop — and failed means the exit code lied about success.",
+      "The journal is the memory: journalctl tells you what the service was doing before it died, which is where every investigation starts.",
+    ],
+  }),
   walkthrough: steps({
     heading: "Walkthrough · triage a dead service in 5 commands",
     accent: "cyan",
@@ -467,6 +568,18 @@ const systemd: Deepening = {
 };
 
 const threatActors: Deepening = {
+  diagram: svgdiag({
+    heading: "Know your adversaries",
+    sub: "motivations differ — and so do the defenses",
+    template: "grid",
+    labels: ["Script Kiddie", "Hacktivist", "Insider", "Cybercriminal", "APT", "Nation-state"],
+    accent: "rose",
+    lines: [
+      "Threat actors are defined by motivation: script kiddies want reputation, hacktivists want a statement, and cybercriminals want money.",
+      "Insiders are the scariest because they start inside the perimeter with legitimate access — which is why least privilege and monitoring matter.",
+      "APTs and nation-states bring patience and resources: months of quiet presence, custom tooling, and an objective beyond the quick score.",
+    ],
+  }),
   walkthrough: steps({
     heading: "Walkthrough · profile an attacker from indicators",
     accent: "rose",
@@ -522,6 +635,17 @@ const threatActors: Deepening = {
 };
 
 const passwordSecurity: Deepening = {
+  diagram: svgdiag({
+    heading: "Hash, never encrypt, passwords",
+    sub: "one-way by design — recovery is the red flag",
+    template: "hashenc",
+    accent: "amber",
+    lines: [
+      "Passwords must be hashed, never encrypted: a hash is one-way by design, so a stolen database yields no recoverable passwords.",
+      "Salting defeats rainbow tables, and slow hash functions like bcrypt or argon2 make brute force a lifetime project instead of a weekend.",
+      "The tell-tale sign of bad storage: a site that can 'email you your password' — that only works if they stored it recoverable, which means wrong.",
+    ],
+  }),
   walkthrough: steps({
     heading: "Walkthrough · audit passwords like an attacker",
     accent: "amber",
@@ -577,6 +701,17 @@ const passwordSecurity: Deepening = {
 };
 
 const authFactors: Deepening = {
+  diagram: svgdiag({
+    heading: "Three categories of proof",
+    sub: "true MFA draws from different categories — twice the same is just twice as phishable",
+    template: "factors",
+    accent: "cyan",
+    lines: [
+      "Authentication factors come in three categories: something you know — passwords and PINs; something you have — authenticator apps and keys; and something you are — biometrics.",
+      "True MFA combines different categories; a password plus a PIN is two knowledge factors — twice as phishable, not twice as safe.",
+      "SMS codes are the weakest second factor because SIM swapping hands them over; hardware keys resist phishing by design.",
+    ],
+  }),
   walkthrough: steps({
     heading: "Walkthrough · design MFA that users won't bypass",
     accent: "cyan",
@@ -633,6 +768,17 @@ const authFactors: Deepening = {
 // ── Security Architecture & SOC ──
 
 const netsecArch: Deepening = {
+  diagram: svgdiag({
+    heading: "Defense in depth, ring by ring",
+    sub: "no single control is trusted — layers buy time and detection",
+    template: "defense",
+    accent: "purple",
+    lines: [
+      "Network security architecture is layered: the data itself, the application, the endpoint, and the network each get their own controls.",
+      "The philosophy is distrust: assume any single ring can fail and make the layers overlap — segmentation, firewalls, EDR, and encryption together.",
+      "Every ring an attacker must defeat is time and detection bought — which is why depth beats any single perfect control.",
+    ],
+  }),
   walkthrough: steps({
     heading: "Walkthrough · segment a flat network in a week",
     accent: "rose",
@@ -688,6 +834,17 @@ const netsecArch: Deepening = {
 };
 
 const loggingMonitoring: Deepening = {
+  diagram: svgdiag({
+    heading: "See what your systems are doing",
+    sub: "metrics, logs, and traces — the observability trio",
+    template: "obs",
+    accent: "teal",
+    lines: [
+      "Security logging and monitoring rest on the same pillars as performance observability: metrics show trends, logs carry evidence, and traces follow the flow.",
+      "The security metric that matters is deviation: auth failures spiking, new outbound flows, login times shifting — alerts should fire on change, not on existence.",
+      "An audit trail you never read is theater — monitoring means reviews, alert owners, and answers to 'so what?' on every signal.",
+    ],
+  }),
   walkthrough: steps({
     heading: "Walkthrough · build a logging pipeline that answers questions",
     accent: "cyan",
@@ -743,6 +900,17 @@ const loggingMonitoring: Deepening = {
 };
 
 const socMetrics: Deepening = {
+  diagram: svgdiag({
+    heading: "Measure the SOC, not the noise",
+    sub: "KPIs that reflect readiness, response, and detection quality",
+    template: "obs",
+    accent: "amber",
+    lines: [
+      "SOC metrics fall into three families: readiness — coverage and staffing; response — time to triage, contain, and resolve; and quality — false positive and miss rates.",
+      "Time-to-detect and time-to-respond are the numbers that matter to the business: MTTR beats MTBF when attacks are a given.",
+      "Alert volume alone is vanity — a quiet SOC that misses everything is worse than a noisy one that catches it; measure both directions.",
+    ],
+  }),
   walkthrough: steps({
     heading: "Walkthrough · read a SOC's health from four numbers",
     accent: "purple",
@@ -796,6 +964,17 @@ const socMetrics: Deepening = {
 };
 
 const reactHooks: Deepening = {
+  diagram: svgdiag({
+    heading: "State in, screen out",
+    sub: "useState triggers render; useEffect runs after paint",
+    template: "reactflow",
+    accent: "cyan",
+    lines: [
+      "useState is the trigger: setState schedules a re-render, and the component function runs again with the new value.",
+      "useEffect is the afterword: it runs after the screen updates, which is where data fetching, subscriptions, and timers belong.",
+      "The dependency array is the contract — list every value the effect reads, or the effect runs on stale state or at the wrong time.",
+    ],
+  }),
   walkthrough: steps({
     heading: "Walkthrough · a data-fetch hook done right",
     accent: "amber",
@@ -850,6 +1029,17 @@ const reactHooks: Deepening = {
 // ── React, TypeScript, Backend & Networking ──
 
 const reactMemo: Deepening = {
+  diagram: svgdiag({
+    heading: "Why your component re-rendered",
+    sub: "the render pipeline — and where memo intercepts it",
+    template: "reactflow",
+    accent: "amber",
+    lines: [
+      "Every re-render follows the same pipeline: state or props change, React re-runs your function, reconciles the tree, commits, and runs effects.",
+      "React.memo sits between props and render: if the props are shallowly equal, the whole pipeline is skipped for that component.",
+      "The catch: a fresh inline object or function makes the props never equal — the memo pays its comparison cost and saves nothing.",
+    ],
+  }),
   walkthrough: steps({
     heading: "Walkthrough · measure first, memoize second",
     accent: "amber",
@@ -903,6 +1093,18 @@ const reactMemo: Deepening = {
 };
 
 const tsProps: Deepening = {
+  diagram: svgdiag({
+    heading: "Five typing habits, one component",
+    sub: "props are documentation that compiles",
+    template: "grid",
+    labels: ["Props interface", "Union types", "Event types", "Defaults", "Inference"],
+    accent: "cyan",
+    lines: [
+      "A Props interface above the component is the contract: autocomplete, error messages, and docs that can never go stale.",
+      "Union types turn closed sets into compile errors — the impossible state 'loding' can no longer reach production.",
+      "Precise event types and defaults in the signature eliminate casts and scattered null-checks; inference handles the rest.",
+    ],
+  }),
   walkthrough: steps({
     heading: "Walkthrough · type a component the way seniors do",
     accent: "cyan",
@@ -958,6 +1160,18 @@ const tsProps: Deepening = {
 };
 
 const sqlFundamentals: Deepening = {
+  diagram: svgdiag({
+    heading: "The SQL question kit",
+    sub: "select, filter, combine, summarize — and index what you filter",
+    template: "grid",
+    labels: ["SELECT", "WHERE", "JOIN", "GROUP BY", "ORDER BY", "Index"],
+    accent: "purple",
+    lines: [
+      "Every query is a sentence built from the same words: SELECT chooses columns, WHERE filters rows, JOIN combines tables.",
+      "GROUP BY collapses rows into summaries and ORDER BY promises order — the two clauses you reach for in every report.",
+      "An index is the database's own table of contents: it makes WHERE fast, and every index slows writes — a trade, not a freebie.",
+    ],
+  }),
   walkthrough: steps({
     heading: "Walkthrough · answer a business question in SQL",
     accent: "purple",
@@ -1013,6 +1227,17 @@ const sqlFundamentals: Deepening = {
 };
 
 const apiSecurity: Deepening = {
+  diagram: svgdiag({
+    heading: "API security is layered, not a wall",
+    sub: "each control assumes the previous one leaked",
+    template: "defense",
+    accent: "rose",
+    lines: [
+      "No single control protects an API: authentication proves who, authorization proves they may, validation proves the payload is sane.",
+      "Rate limiting and scoped tokens assume an attacker got past the first ring anyway — a leaked read-only token cannot delete.",
+      "Logging the denies builds the outermost ring: detection feeds tomorrow's defenses, which is what makes the layers a system.",
+    ],
+  }),
   walkthrough: steps({
     heading: "Walkthrough · secure an endpoint from a blank file",
     accent: "rose",
@@ -1068,6 +1293,17 @@ const apiSecurity: Deepening = {
 };
 
 const dnsDhcp: Deepening = {
+  diagram: svgdiag({
+    heading: "A name's journey to an address",
+    sub: "every hop is a cache that can be the liar",
+    template: "packet",
+    accent: "green",
+    lines: [
+      "Resolution walks a chain: your machine's cache, the configured resolver, root and TLD servers, then the authoritative answer.",
+      "DHCP hands your machine its address and — crucially — which resolver to ask, which is how a misconfigured router poisons every lookup on the network.",
+      "TTL decides how long each hop may remember the answer: flushing the cache only helps when the cache is the liar.",
+    ],
+  }),
   walkthrough: steps({
     heading: "Walkthrough · trace a name from browser to IP",
     accent: "green",
@@ -1124,6 +1360,7 @@ const dnsDhcp: Deepening = {
 // ── Registry ──
 
 export const DEEPENINGS: Record<string, Deepening> = {
+  ...DEEPEN2,
   "les-nf-5-1": wireshark,
   "les-lf-4-1": linuxNetworking,
   "les-wf-3-1": jsFundamentals,

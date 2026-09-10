@@ -125,6 +125,18 @@ export interface DiagramSceneData {
   lines: string[];
 }
 
+export interface SvgDiagSceneData {
+  kind: "svgdiag";
+  heading: string;
+  subtitle?: string;
+  /** Which animated SVG illustration to render (see Learner/svgDiagrams.tsx). */
+  template: string;
+  /** Optional stage labels for generic templates (pipeline, layers, cycle...). */
+  labels?: string[];
+  accent?: AccentColor;
+  lines: string[];
+}
+
 export interface RowsRow {
   label: string;
   detail?: string;
@@ -254,6 +266,7 @@ export type VideoScene =
   | ScenarioSceneData
   | QuizSceneData
   | QuizCardSceneData
+  | SvgDiagSceneData
   | StatSceneData
   | StatGridSceneData
   | RecapSceneData;
@@ -466,6 +479,39 @@ export function flow(objOrHeading: FlowObj | string, nodesOrLead?: Record<string
     };
   }
   return { kind: "flow", heading: objOrHeading, subtitle, nodes: nodesOrLead as Record<string, DiagramNode>, edges: edges ?? [], accent: accent ?? "amber", lines: lines ?? [] };
+}
+
+export interface SvgDiagObj {
+  heading: string;
+  sub?: string;
+  template: string;
+  labels?: string[];
+  accent?: AccentColor;
+  lines: Lines;
+}
+export function svgdiag(obj: SvgDiagObj, lead?: string): VideoScene;
+export function svgdiag(template: string, heading: string, lines: Lines, subtitle?: string, accent?: AccentColor, labels?: string[]): VideoScene;
+export function svgdiag(objOrTemplate: SvgDiagObj | string, headingOrLead?: string | string, lines?: Lines, subtitle?: string, accent?: AccentColor, labels?: string[]): VideoScene {
+  if (typeof objOrTemplate === "object") {
+    return {
+      kind: "svgdiag",
+      heading: objOrTemplate.heading,
+      subtitle: objOrTemplate.sub,
+      template: objOrTemplate.template,
+      labels: objOrTemplate.labels,
+      accent: objOrTemplate.accent ?? "cyan",
+      lines: objOrTemplate.lines,
+    };
+  }
+  return {
+    kind: "svgdiag",
+    template: objOrTemplate,
+    heading: headingOrLead as string,
+    subtitle,
+    accent: accent ?? "cyan",
+    labels,
+    lines: lines ?? [],
+  };
 }
 
 export interface CodeObj {

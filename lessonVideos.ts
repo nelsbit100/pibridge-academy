@@ -94,6 +94,10 @@ function applyDeepening(script: LessonVideoScript): LessonVideoScript {
       if (scenes[i].kind === "title") { insertAt = i + 1; break; }
     }
   }
+  if (deep.diagram) {
+    scenes.splice(insertAt, 0, deep.diagram);
+    insertAt += 1;
+  }
   scenes.splice(insertAt, 0, deep.walkthrough, deep.pitfalls);
   return { ...script, scenes };
 }
