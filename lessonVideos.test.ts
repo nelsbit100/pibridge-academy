@@ -115,4 +115,17 @@ describe("lesson video scripts", () => {
     expect(getLessonVideo(sample.id)?.lessonId).toBe(sample.id);
     expect(getLessonVideo("les-does-not-exist")).toBeUndefined();
   });
+
+  it("references real SVG templates in every svgdiag scene", async () => {
+    const { SVG_TEMPLATES } = await import("./Learner/svgDiagrams");
+    for (const script of Object.values(LESSON_VIDEOS)) {
+      for (const scene of script.scenes) {
+        if (scene.kind !== "svgdiag") continue;
+        expect(
+          SVG_TEMPLATES[scene.template],
+          `${script.lessonId} diagram template "${scene.template}"`
+        ).toBeDefined();
+      }
+    }
+  });
 });

@@ -84,6 +84,14 @@ describe("learning loop: watch → quiz → complete → certificate", () => {
       act(() => {
         ctx().navigateToLesson(COURSE, VIDEO_LESSON);
       });
+      // The course player is code-split (lazy): the Suspense boundary
+      // shows a loader until the dynamic import resolves. Flush until
+      // the player renders (each await act yields real event-loop turns,
+      // which the import chain needs even under fake timers).
+      for (let i = 0; i < 100; i++) {
+        if (screen.queryByRole("button", { name: /play .*(management|linux)/i })) break;
+        await flush();
+      }
 
       // ── 1. Watch the lesson video to the end ─────────────────────
       expect(screen.getByTestId("current-view")).toHaveTextContent("course-player");

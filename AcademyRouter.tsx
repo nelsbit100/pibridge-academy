@@ -2,12 +2,18 @@
 // PiBridge Academy — Router & Shell
 // ──────────────────────────────────────────────────────────────
 
+import { lazy, Suspense } from "react";
 import { AcademyProvider, useAcademy } from "./AcademyContext";
 import { AcademyLanding } from "./Public/AcademyLanding";
 import { ProgrammeList, ProgrammeDetail } from "./Public/ProgrammeList";
 import { CourseDetail } from "./Public/CourseDetail";
 import { LearnerDashboard } from "./Learner/LearnerDashboard";
-import { CoursePlayer } from "./Learner/CoursePlayer";
+// The course player (and its whole video subsystem — animated lesson
+// engine, SVG diagram library, script catalog, quiz builder) is only
+// reachable from here, so it is code-split out of the initial bundle.
+const CoursePlayer = lazy(() =>
+  import("./Learner/CoursePlayer").then((m) => ({ default: m.CoursePlayer }))
+);
 import { ProfessionalProfile } from "./Learner/ProfessionalProfile";
 import { CareerDiscovery } from "./Learner/CareerDiscovery";
 import { CareerPathProgression } from "./Learner/CareerPathProgression";
@@ -136,6 +142,15 @@ function AcademyNav() {
   );
 }
 
+/** Suspense fallback while the code-split course player chunk loads. */
+function ViewLoading() {
+  return (
+    <div className="min-h-[60vh] flex items-center justify-center" role="status" aria-label="Loading">
+      <div className="w-8 h-8 rounded-full border-4 border-[#003135]/10 border-t-[#003135] animate-spin" />
+    </div>
+  );
+}
+
 function AcademyViewRouter() {
   const { currentView, setView, navigateToProgramme } = useAcademy();
 
@@ -154,13 +169,13 @@ function AcademyViewRouter() {
     case "learner-dashboard":
       return <LearnerDashboard />;
     case "course-player":
-      return <CoursePlayer />;
+      return <Suspense fallback={<ViewLoading />}><CoursePlayer /></Suspense>;
     case "my-courses":
       return <LearnerDashboard />;
     case "certificates":
       return <CertificateView onBack={() => setView("learner-dashboard")} />;
     case "quiz":
-      return <CoursePlayer />;
+      return <Suspense fallback={<ViewLoading />}><CoursePlayer /></Suspense>;
     case "assignments":
       return <LearnerDashboard />;
     case "profile":
