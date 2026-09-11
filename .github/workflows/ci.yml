@@ -29,3 +29,6 @@ jobs:
 
       - name: Build
         run: npx vite build
+
+      - name: Bundle size budget
+        run: node scripts/check-bundle-size.mjs
