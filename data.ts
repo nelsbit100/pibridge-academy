@@ -12,6 +12,7 @@ import type {
   Certificate,
 } from "./types";
 import { ALL_COURSE_MODULES } from "./courseContent";
+import { EXPANDED_COURSE_MODULES } from "./expandedCourseContent";
 import { ALL_NEW_PROGRAMMES, ALL_NEW_COURSES } from "./expandedProgrammes";
 
 // ── Programmes ──
@@ -578,15 +579,8 @@ export const COURSES: Course[] = [
   },
 ];
 
-// Merge full course content (modules, lessons) into courses
-for (const course of COURSES) {
-  const fullModules = ALL_COURSE_MODULES[course.id];
-  if (fullModules && fullModules.length > 0) {
-    course.modules = fullModules;
-  }
-}
-
-// ── Add new programmes and courses ──
+// ── Add new programmes and courses FIRST, so the module merge and the
+// reading deepening below cover them too ──
 for (const p of ALL_NEW_PROGRAMMES) {
   if (!PROGRAMMES.find((existing) => existing.id === p.id)) {
     PROGRAMMES.push(p);
@@ -597,6 +591,29 @@ for (const c of ALL_NEW_COURSES) {
     COURSES.push(c);
   }
 }
+
+// Merge full course content (modules, lessons) into courses.
+// Foundation courses get their modules from courseContent.ts; the expanded
+// courses (intermediate/advanced/high-demand) get theirs from
+// expandedCourseContent.ts. The expanded arrays are shared module-level
+// consts — clone them so per-lesson progress mutations never leak between
+// courses that slice the same source array.
+for (const course of COURSES) {
+  const fullModules = ALL_COURSE_MODULES[course.id];
+  if (fullModules && fullModules.length > 0) {
+    course.modules = fullModules;
+  } else {
+    const expandedModules = EXPANDED_COURSE_MODULES[course.id];
+    if (expandedModules && expandedModules.length > 0) {
+      course.modules = structuredClone(expandedModules);
+    }
+  }
+}
+
+// Note: reading-lesson deepening (readingContent.ts, ~190 kB of authored
+// content) is applied in the lazy CoursePlayer, NOT here — importing it in
+// this module would pull it into the initial bundle and blow the CI budget.
+// data.ts stays catalog-only; Learner/CoursePlayer enriches at render time.
 // Update original programmes with careerTier and tags
 for (const p of PROGRAMMES) {
   if (!p.careerTier) {

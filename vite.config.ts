@@ -23,6 +23,9 @@ export default defineConfig({
         // - the lazy() CoursePlayer chunk keeps the video engine + diagrams
         manualChunks(id) {
           if (id.includes("node_modules")) return "vendor";
+          // Deep reading content: only consumed by the lazy CoursePlayer, so
+          // it gets its own chunk — cached independently of player code.
+          if (id.includes("readingContent")) return "reading-content";
           const course = id.match(/lessonVideos[\\/](nf|lf|cf|soc|ti|web|react|node|cloud|tf|ct|do)\.ts$/);
           if (course) return `lesson-${course[1]}`;
           // shared engine + deepenings (the root lessonVideos.ts aggregator is
