@@ -1,6 +1,9 @@
 # PiBridge Academy
 
 ![CI](https://github.com/nelsbit100/pibridge-academy/actions/workflows/ci.yml/badge.svg)
+![Deploy to GitHub Pages](https://github.com/nelsbit100/pibridge-academy/actions/workflows/deploy-pages.yml/badge.svg)
+
+🚀 **Live demo:** [nelsbit100.github.io/pibridge-academy](https://nelsbit100.github.io/pibridge-academy/) — built from the production bundle on every push to `main`.
 
 A career-focused e-learning platform for cybersecurity, software engineering, cloud, AI/ML, and data tracks — with an animated, narrated video-lesson engine, auto-derived quizzes, instructor grading, verifiable certificates, and a professional "passport" profile.
 
