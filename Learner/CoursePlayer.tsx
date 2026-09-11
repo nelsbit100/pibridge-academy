@@ -2,7 +2,7 @@
 // PiBridge Academy — Course Player
 // ──────────────────────────────────────────────────────────────
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAcademy } from "../AcademyContext";
 import { COURSES } from "../data";
 import type { Quiz } from "../types";
@@ -15,6 +15,8 @@ import { motion, AnimatePresence } from "motion/react";
 import { AnimatedLessonVideo } from "./AnimatedLessonVideo";
 import { getLessonVideo } from "../lessonVideos";
 import { buildLessonQuiz } from "./lessonQuiz";
+import { ReadingBody } from "./ReadingBody";
+import { deepenedLesson } from "../readingContent";
 import { QuizEngine } from "./QuizEngine";
 
 const LESSON_TYPE_ICONS: Record<string, typeof Play> = {
@@ -41,14 +43,26 @@ export function CoursePlayer() {
 
   const course = COURSES.find((c) => c.id === selectedCourseId);
   if (!course) return null;
+  // Reading-lesson deepening is applied lazily here (not in data.ts) so the
+  // ~190 kB of authored content stays out of the initial bundle. Memoized:
+  // lesson object identity stays stable across re-renders.
+  const deepenedModules = useMemo(
+    () =>
+      course.modules.map((mod) => ({
+        ...mod,
+        lessons: mod.lessons.map((l) => (l.type === "reading" ? deepenedLesson(l) : l)),
+      })),
+    [course.modules]
+  );
+  const modules = deepenedModules;
 
   const courseProgress = progress[course.id];
   const completedLessons = courseProgress?.completedLessons || [];
 
-  // Find current lesson
+  // Find current lesson (searching the deepened module list)
   let currentLesson = null;
   let currentModule = null;
-  for (const mod of course.modules) {
+  for (const mod of modules) {
     const found = mod.lessons.find((l) => l.id === selectedLessonId);
     if (found) {
       currentLesson = found;
@@ -58,8 +72,8 @@ export function CoursePlayer() {
   }
 
   // If no lesson selected, use first lesson
-  if (!currentLesson && course.modules.length > 0 && course.modules[0].lessons.length > 0) {
-    currentModule = course.modules[0];
+  if (!currentLesson && modules.length > 0 && modules[0].lessons.length > 0) {
+    currentModule = modules[0];
     currentLesson = currentModule.lessons[0];
   }
 
@@ -90,7 +104,7 @@ export function CoursePlayer() {
   };
 
   // Find next/prev lessons
-  const allLessons = course.modules.flatMap((m) => m.lessons);
+  const allLessons = modules.flatMap((m) => m.lessons);
   const currentIndex = allLessons.findIndex((l) => l.id === currentLesson?.id);
   const prevLesson = currentIndex > 0 ? allLessons[currentIndex - 1] : null;
   const nextLesson = currentIndex < allLessons.length - 1 ? allLessons[currentIndex + 1] : null;
@@ -191,7 +205,7 @@ export function CoursePlayer() {
 
               {/* Module List */}
               <div className="flex-1 overflow-y-auto">
-                {course.modules.map((mod) => {
+                {modules.map((mod) => {
                   const isExpanded = expandedModules.has(mod.id);
                   const modCompleted = mod.lessons.filter((l) => completedLessons.includes(l.id)).length;
 
@@ -319,9 +333,7 @@ export function CoursePlayer() {
             {currentLesson.type === "reading" && currentLesson.content && (
               <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-8 mb-8">
                 <h1 className="text-2xl font-bold text-white mb-6">{currentLesson.title}</h1>
-                <div className="prose prose-invert prose-neutral max-w-none">
-                  <p className="text-neutral-300 leading-relaxed text-lg">{currentLesson.content}</p>
-                </div>
+                <ReadingBody content={currentLesson.content} />
               </div>
             )}
 

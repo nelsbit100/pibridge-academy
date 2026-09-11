@@ -28,7 +28,7 @@ export const SOC_THREAT_INTEL_MODULES: Module[] = [
     lessons: [
       { id: "l-ti-2-1", moduleId: "mod-ti-2", title: "Types of IOCs", type: "reading", durationMinutes: 25, order: 1, content: "IOCs include: IP addresses, domain names, URLs, file hashes (MD5, SHA-1, SHA-256), email addresses, file names, registry keys, mutexes, TLS certificates, JA3 hashes. Understanding which IOC types are high-fidelity vs noisy is critical for effective detection.", isPreview: false },
       { id: "l-ti-2-2", moduleId: "mod-ti-2", title: "IOC Collection Tools", type: "lab", durationMinutes: 40, order: 2, content: "Lab: Use VirusTotal, AbuseIPDB, and MISP to collect and enrich IOCs from a sample incident. Create an IOC report in structured format (STIX/TAXII).", isPreview: false },
-      { id: "l-ti-2-3", moduleId: "mod-ti-2", title: "IOC Lifecycle Management", type: "reading", durationMinutes: 20, order: 3, content: "IOCs have a shelf life. IP addresses rotate, domains change ownership, file hashes become obsolete. Effective IOC management requires: validation, enrichment, confidence scoring, expiration, and continuous更新.", isPreview: false },
+      { id: "l-ti-2-3", moduleId: "mod-ti-2", title: "IOC Lifecycle Management", type: "reading", durationMinutes: 20, order: 3, content: "IOCs have a shelf life. IP addresses rotate, domains change ownership, file hashes become obsolete. Effective IOC management requires: validation, enrichment, confidence scoring, expiration, and continuous updating.", isPreview: false },
     ],
   },
   {
@@ -535,7 +535,7 @@ export const EXPANDED_COURSE_MODULES: Record<string, Module[]> = {
   "course-aws-advanced": CLOUD_ENGINEER_MODULES,
   "course-multi-cloud": CLOUD_SOLUTIONS_ARCH_MODULES,
   // AI/ML
-  "course-python-data": AI_ML_MODULES.slice(0, 1),
+  "course-python-fundamentals": AI_ML_MODULES.slice(0, 1),
   "course-ml-fundamentals": AI_ML_MODULES.slice(1, 2),
   "course-deep-learning": AI_ML_MODULES.slice(2, 3),
   // Data
