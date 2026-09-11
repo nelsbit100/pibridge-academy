@@ -41,8 +41,20 @@ function ctx() {
   return harness.ctx;
 }
 
+/** Flush React effects with fake timers pending. */
 async function flush() {
   await act(async () => {});
+}
+
+/** Flush-loop until `find` returns an element — dashboard/certificate
+ * views are lazy-loaded, so the view chunk may need several turns. */
+async function waitFor(find: () => Element | null): Promise<Element> {
+  for (let i = 0; i < 100; i++) {
+    const el = find();
+    if (el) return el;
+    await flush();
+  }
+  throw new Error("waitFor: element never appeared");
 }
 
 /** Switch role to instructor, open the dashboard, select the Grading tab. */
@@ -51,9 +63,11 @@ async function openGradingTab() {
     ctx().setRole("instructor");
     ctx().setView("instructor-dashboard");
   });
-  await flush();
-  fireEvent.click(screen.getByRole("button", { name: /^Grading \(/i }));
-  await flush();
+  const gradingBtn = await waitFor(() =>
+    screen.queryByRole("button", { name: /^Grading \(/i })
+  );
+  fireEvent.click(gradingBtn);
+  await waitFor(() => (screen.queryAllByText(/auto-scored/i).length ? screen.queryAllByText(/auto-scored/i)[0] : null));
 }
 
 describe("instructor grading view", () => {
@@ -153,11 +167,10 @@ describe("instructor grading view", () => {
       ctx().setRole("instructor");
       ctx().setView("instructor-dashboard");
     });
-    await flush();
 
     // The stats card counts pending submissions (2 fresh ones on top of
     // the demo data, where every recorded row is already graded).
-    const statLabel = screen.getByText("Submissions to Review");
+    const statLabel = await waitFor(() => screen.queryByText("Submissions to Review"));
     expect(statLabel.previousElementSibling?.textContent).toBe("2");
 
     await openGradingTab();

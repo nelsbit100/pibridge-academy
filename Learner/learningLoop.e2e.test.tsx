@@ -191,6 +191,12 @@ describe("learning loop: watch → quiz → complete → certificate", () => {
       act(() => {
         ctx().setView("certificates");
       });
+      // CertificateView is lazy-loaded: flush until its chunk resolves
+      // and the credential renders.
+      for (let i = 0; i < 100; i++) {
+        if (screen.queryByText(/certificate of completion/i)) break;
+        await flush();
+      }
       expect(
         screen.getByText(/certificate of completion/i)
       ).toBeInTheDocument();

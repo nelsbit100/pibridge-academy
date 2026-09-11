@@ -7,32 +7,42 @@ import { AcademyProvider, useAcademy } from "./AcademyContext";
 import { AcademyLanding } from "./Public/AcademyLanding";
 import { ProgrammeList, ProgrammeDetail } from "./Public/ProgrammeList";
 import { CourseDetail } from "./Public/CourseDetail";
-import { LearnerDashboard } from "./Learner/LearnerDashboard";
-// The course player (and its whole video subsystem — animated lesson
-// engine, SVG diagram library, script catalog, quiz builder) is only
-// reachable from here, so it is code-split out of the initial bundle.
-const CoursePlayer = lazy(() =>
-  import("./Learner/CoursePlayer").then((m) => ({ default: m.CoursePlayer }))
-);
-import { ProfessionalProfile } from "./Learner/ProfessionalProfile";
-import { CareerDiscovery } from "./Learner/CareerDiscovery";
-import { CareerPathProgression } from "./Learner/CareerPathProgression";
-import { LivePresentation } from "./Learner/LivePresentation";
-import { CertificateView } from "./Learner/CertificateView";
-import { AIInterviewer } from "./Learner/AIInterviewer";
-import { PaymentCheckout } from "./Learner/PaymentCheckout";
-import { EmployerPortal } from "./Public/EmployerPortal";
-import { BusinessOSPage } from "./Public/BusinessOSPage";
-import { SecurePage } from "./Public/SecurePage";
-import { InstructorDashboard } from "./Instructor/InstructorDashboard";
-import { AdminDashboard } from "./Admin/AdminDashboard";
-import {
-  GraduationCap, BookOpen, Shield, User, Settings, ChevronDown,
-  LayoutDashboard, Award, FileText,
-} from "lucide-react";
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, type ComponentType } from "react";
 import { useScrollReveal } from "./useScrollReveal";
 import type { AcademyRole, AcademyView } from "./types";
+import { GraduationCap, BookOpen, Shield, User, ChevronDown } from "lucide-react";
+
+// ── Code splitting ────────────────────────────────────────────
+// Everything past the public landing/browse pages is role- or
+// long-tail-only (dashboards, the video player and its whole subsystem —
+// animated lesson engine, SVG diagram library, 72-lesson script catalog —
+// plus certificates, profile, checkout, portals). Each is lazy-loaded on
+// first navigation so none of it ships in the initial bundle.
+const lazyView = (load: () => Promise<Record<string, unknown>>, name: string) =>
+  lazy(() =>
+    load().then((m) => {
+      const View = m[name] as ComponentType<any> | undefined;
+      if (!View) throw new Error(`View "${name}" not found in its module`);
+      return { default: View };
+    })
+  );
+
+const LearnerDashboard = lazyView(() => import("./Learner/LearnerDashboard"), "LearnerDashboard");
+// The course player pulls in the video engine, diagram library and the
+// per-course script chunks — by far the heaviest subsystem.
+const CoursePlayer = lazyView(() => import("./Learner/CoursePlayer"), "CoursePlayer");
+const CertificateView = lazyView(() => import("./Learner/CertificateView"), "CertificateView");
+const ProfessionalProfile = lazyView(() => import("./Learner/ProfessionalProfile"), "ProfessionalProfile");
+const CareerDiscovery = lazyView(() => import("./Learner/CareerDiscovery"), "CareerDiscovery");
+const CareerPathProgression = lazyView(() => import("./Learner/CareerPathProgression"), "CareerPathProgression");
+const LivePresentation = lazyView(() => import("./Learner/LivePresentation"), "LivePresentation");
+const AIInterviewer = lazyView(() => import("./Learner/AIInterviewer"), "AIInterviewer");
+const PaymentCheckout = lazyView(() => import("./Learner/PaymentCheckout"), "PaymentCheckout");
+const EmployerPortal = lazyView(() => import("./Public/EmployerPortal"), "EmployerPortal");
+const BusinessOSPage = lazyView(() => import("./Public/BusinessOSPage"), "BusinessOSPage");
+const SecurePage = lazyView(() => import("./Public/SecurePage"), "SecurePage");
+const InstructorDashboard = lazyView(() => import("./Instructor/InstructorDashboard"), "InstructorDashboard");
+const AdminDashboard = lazyView(() => import("./Admin/AdminDashboard"), "AdminDashboard");
 
 
 function AcademyNav() {
@@ -169,13 +179,13 @@ function AcademyViewRouter() {
     case "learner-dashboard":
       return <LearnerDashboard />;
     case "course-player":
-      return <Suspense fallback={<ViewLoading />}><CoursePlayer /></Suspense>;
+      return <CoursePlayer />;
     case "my-courses":
       return <LearnerDashboard />;
     case "certificates":
       return <CertificateView onBack={() => setView("learner-dashboard")} />;
     case "quiz":
-      return <Suspense fallback={<ViewLoading />}><CoursePlayer /></Suspense>;
+      return <CoursePlayer />;
     case "assignments":
       return <LearnerDashboard />;
     case "profile":
@@ -193,16 +203,16 @@ function AcademyViewRouter() {
     case "career-discovery":
       return <CareerDiscovery
         onBack={() => setView("home")}
-        onSelectProgramme={(progId) => navigateToProgramme(progId)}
+        onSelectProgramme={(progId: string) => navigateToProgramme(progId)}
       />;
     case "career-path":
       return <CareerPathProgression
         domain="cybersecurity"
         completedTierIds={[]}
         stats={{ coursesCompleted: 3, averageQuizScore: 78, projectsCompleted: 2, hasPresentation: false, hasInterview: false, competencyLevel: "Developing" }}
-        onSelectProgramme={(progId) => setView("programme-detail")}
-        onStartPresentation={(tierId) => setView("live-presentation")}
-        onStartInterview={(tierId) => setView("ai-interview")}
+        onSelectProgramme={(progId: string) => setView("programme-detail")}
+        onStartPresentation={(tierId: string) => setView("live-presentation")}
+        onStartInterview={(tierId: string) => setView("ai-interview")}
         onBack={() => setView("home")}
       />;
     case "live-presentation":
@@ -211,7 +221,7 @@ function AcademyViewRouter() {
         projectDescription="Complete SOC investigation report with timeline, IOCs, and detection rules"
         programmeId="prog-cyber-foundation"
         tierName="foundation"
-        onComplete={(score, feedback) => setView("learner-dashboard")}
+        onComplete={(score: number, feedback: string) => setView("learner-dashboard")}
         onBack={() => setView("learner-dashboard")}
       />;
     case "ai-interview":
@@ -221,7 +231,7 @@ function AcademyViewRouter() {
         domain="cybersecurity"
         programmeId="prog-cyber-foundation"
         tierName="foundation"
-        onComplete={(score, readiness) => setView("learner-dashboard")}
+        onComplete={(score: number, readiness: string) => setView("learner-dashboard")}
         onBack={() => setView("learner-dashboard")}
       />;
     case "payment-checkout":
@@ -264,7 +274,11 @@ export function AcademyShell() {
   return (
     <div className="min-h-screen bg-aliceblue text-[#003135] font-sans">
       <AcademyNav />
-      <AcademyViewRouter />
+      {/* One boundary covers every lazy view: while a view's chunk loads,
+          the nav stays visible and the spinner fills the content area. */}
+      <Suspense fallback={<ViewLoading />}>
+        <AcademyViewRouter />
+      </Suspense>
     </div>
   );
 }
